@@ -4,10 +4,8 @@ import com.google.inject.Injector;
 import gpu.IntersectionKernel;
 
 import java.io.File;
-import java.util.Vector;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.DoubleStream;
 
 public class ViewFactorCalculator {
@@ -31,7 +29,7 @@ public class ViewFactorCalculator {
     if (interconnectFile != null) {
       kernelBuilder.setInterconnectFile(interconnectFile);
     }
-    kernelBuilder.build().calculateAll(this::computePartialViewFactor, this::onComplete);
+    kernelBuilder.build().calculate(this::computePartialViewFactor, this::onComplete);
   }
 
   private void computePartialViewFactor(double[] result, double dA) {

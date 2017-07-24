@@ -111,7 +111,6 @@ public class IntersectionKernel extends Kernel {
   @Constant private final double[] emitterCenterZ;
   @Constant private final double[] emitterAreas;
 
-  @Constant private final int numInterconnects;
   @Constant private final double[] interconnectNormalX;
   @Constant private final double[] interconnectNormalY;
   @Constant private final double[] interconnectNormalZ;
@@ -125,7 +124,6 @@ public class IntersectionKernel extends Kernel {
   @Constant private final double[] interconnectEdgeCAY;
   @Constant private final double[] interconnectEdgeCAZ;
 
-  @Constant private final int numReceivers;
   @Constant private final double[] receiverNormalX;
   @Constant private final double[] receiverNormalY;
   @Constant private final double[] receiverNormalZ;
@@ -176,8 +174,7 @@ public class IntersectionKernel extends Kernel {
       double[] receiverCenterX,
       double[] receiverCenterY,
       double[] receiverCenterZ,
-      double[] receiverAreas
-      ) {
+      double[] receiverAreas) {
     this.emitterNormalX = emitterNormalX;
     this.emitterNormalY = emitterNormalY;
     this.emitterNormalZ = emitterNormalZ;
@@ -189,7 +186,6 @@ public class IntersectionKernel extends Kernel {
     this.emitterCenterZ = emitterCenterZ;
     this.emitterAreas = emitterAreas;
 
-    this.numInterconnects = interconnectNormalX.length;
     this.interconnectNormalX = interconnectNormalX;
     this.interconnectNormalY = interconnectNormalY;
     this.interconnectNormalZ = interconnectNormalZ;
@@ -203,7 +199,6 @@ public class IntersectionKernel extends Kernel {
     this.interconnectEdgeCAY = interconnectEdgeCAY;
     this.interconnectEdgeCAZ = interconnectEdgeCAZ;
 
-    this.numReceivers = receiverNormalX.length;
     this.receiverNormalX = receiverNormalX;
     this.receiverNormalY = receiverNormalY;
     this.receiverNormalZ = receiverNormalZ;
@@ -257,7 +252,7 @@ public class IntersectionKernel extends Kernel {
    * Runs the kernel for each emitter triangle, passing the view factor result of that triangle's dA incrementally back
    * to resultConsumer. Calls completionHandler onComplete when the task is finished.
    */
-  public void calculateAll(BiConsumer<double[], Double> resultConsumer, KernelComplete completionHandler) {
+  public void calculate(BiConsumer<double[], Double> resultConsumer, KernelComplete completionHandler) {
     if (isMathOnly()) {
       throw new MathOnlyKernelException();
     }
