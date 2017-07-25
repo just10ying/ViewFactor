@@ -28,7 +28,8 @@ public class IntersectionKernel extends Kernel {
     }
 
     public Builder setInterconnectFile(File interconnectFile) {
-      interconnects = geometryProvider.get().from(interconnectFile);
+      interconnects = interconnectFile == null
+          ? geometryProvider.get().empty() : geometryProvider.get().from(interconnectFile);
       return this;
     }
 
@@ -130,6 +131,7 @@ public class IntersectionKernel extends Kernel {
 
   private double[] result;
   private int emitterIndex;
+
   /**
    * Constructor, used only by the Builder class. The builder exists so the above fields can be final, allowing Aparapi
    * to put them in faster memory.
@@ -372,8 +374,8 @@ public class IntersectionKernel extends Kernel {
         / (PI * rayMagnitude * rayMagnitude);
   }
 
+  // TODO: tests.
   @VisibleForTesting
-    // TODO: tests.
   double intersectionDistance(int interconnectIndex, int receiverIndex, double rayX, double rayY, double rayZ, double rayMagnitude) {
     // pvec = cross product of ray and edge2.
     double pvecX = rayY * interconnectEdgeCAZ[interconnectIndex] - rayZ * interconnectEdgeCAY[interconnectIndex];

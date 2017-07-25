@@ -44,23 +44,6 @@ public class GpuGeometry {
 
   private double[] area;
 
-  // From: https://math.stackexchange.com/questions/128991/how-to-calculate-area-of-3d-triangle
-  @VisibleForTesting
-  static double areaOf(double[][] triangle) {
-    double x1 = triangle[1][X] - triangle[0][X];
-    double x2 = triangle[1][Y] - triangle[0][Y];
-    double x3 = triangle[1][Z] - triangle[0][Z];
-
-    double y1 = triangle[2][X] - triangle[0][X];
-    double y2 = triangle[2][Y] - triangle[0][Y];
-    double y3 = triangle[2][Z] - triangle[0][Z];
-
-    return .5 * Math.sqrt(
-        (x2 * y3 - x3 * y2) * (x2 * y3 - x3 * y2)
-            + (x3 * y1 - x1 * y3) * (x3 * y1 - x1 * y3)
-            + (x1 * y2 - x2 * y1) * (x1 * y2 - x2 * y1));
-  }
-
   @Inject
   public GpuGeometry() {}
 
@@ -71,35 +54,6 @@ public class GpuGeometry {
   GpuGeometry empty() {
     initWithSize(0);
     return this;
-  }
-
-  private void initWithSize(int size) {
-    this.size = size;
-    if (size == 0) {
-      size = 1;
-    }
-
-    normalX = new double[size];
-    normalY = new double[size];
-    normalZ = new double[size];
-
-    vertexAX = new double[size];
-    vertexAY = new double[size];
-    vertexAZ = new double[size];
-
-    edgeBAX = new double[size];
-    edgeBAY = new double[size];
-    edgeBAZ = new double[size];
-
-    edgeCAX = new double[size];
-    edgeCAY = new double[size];
-    edgeCAZ = new double[size];
-
-    centerX = new double[size];
-    centerY = new double[size];
-    centerZ = new double[size];
-
-    area = new double[size];
   }
 
   GpuGeometry from(File file) {
@@ -141,6 +95,22 @@ public class GpuGeometry {
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
+  }
+  // From: https://math.stackexchange.com/questions/128991/how-to-calculate-area-of-3d-triangle
+  @VisibleForTesting
+  static double areaOf(double[][] triangle) {
+    double x1 = triangle[1][X] - triangle[0][X];
+    double x2 = triangle[1][Y] - triangle[0][Y];
+    double x3 = triangle[1][Z] - triangle[0][Z];
+
+    double y1 = triangle[2][X] - triangle[0][X];
+    double y2 = triangle[2][Y] - triangle[0][Y];
+    double y3 = triangle[2][Z] - triangle[0][Z];
+
+    return .5 * Math.sqrt(
+        (x2 * y3 - x3 * y2) * (x2 * y3 - x3 * y2)
+            + (x3 * y1 - x1 * y3) * (x3 * y1 - x1 * y3)
+            + (x1 * y2 - x2 * y1) * (x1 * y2 - x2 * y1));
   }
 
   double[] getNormalX() {
@@ -205,5 +175,34 @@ public class GpuGeometry {
 
   double[] getArea() {
     return area;
+  }
+
+  private void initWithSize(int size) {
+    this.size = size;
+    if (size == 0) {
+      size = 1;
+    }
+
+    normalX = new double[size];
+    normalY = new double[size];
+    normalZ = new double[size];
+
+    vertexAX = new double[size];
+    vertexAY = new double[size];
+    vertexAZ = new double[size];
+
+    edgeBAX = new double[size];
+    edgeBAY = new double[size];
+    edgeBAZ = new double[size];
+
+    edgeCAX = new double[size];
+    edgeCAY = new double[size];
+    edgeCAZ = new double[size];
+
+    centerX = new double[size];
+    centerY = new double[size];
+    centerZ = new double[size];
+
+    area = new double[size];
   }
 }

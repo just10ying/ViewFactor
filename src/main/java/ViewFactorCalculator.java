@@ -29,11 +29,12 @@ public class ViewFactorCalculator {
   }
 
   public void run(File emitterFile, File interconnectFile, File receiverFile) {
-    kernelBuilder.setEmitterFile(emitterFile).setReceiverFile(receiverFile);
-    if (interconnectFile != null) {
-      kernelBuilder.setInterconnectFile(interconnectFile);
-    }
-    kernelBuilder.build().calculate(adder::add, this::onComplete);
+    kernelBuilder
+        .setEmitterFile(emitterFile)
+        .setInterconnectFile(interconnectFile)
+        .setReceiverFile(receiverFile)
+        .build()
+        .calculate(adder::add, this::onComplete);
   }
 
   private void onComplete() {
