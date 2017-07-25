@@ -10,8 +10,75 @@ import java.io.File;
 import java.util.function.Consumer;
 
 public class IntersectionKernel extends Kernel {
-  @Constant
-  private final int interconnectSize;
+
+  public static class Builder {
+    private Provider<GpuGeometry> geometryProvider;
+    private GpuGeometry emitters;
+    private GpuGeometry interconnects;
+    private GpuGeometry receivers;
+
+    @Inject
+    public Builder(Provider<GpuGeometry> geometryProvider) {
+      this.geometryProvider = geometryProvider;
+    }
+
+    public Builder setEmitterFile(File emitterFile) {
+      emitters = geometryProvider.get().from(emitterFile);
+      return this;
+    }
+
+    public Builder setInterconnectFile(File interconnectFile) {
+      interconnects = geometryProvider.get().from(interconnectFile);
+      return this;
+    }
+
+    public Builder setReceiverFile(File receiverFile) {
+      receivers = geometryProvider.get().from(receiverFile);
+      return this;
+    }
+
+    public IntersectionKernel build() {
+      if (interconnects == null) {
+        interconnects = geometryProvider.get().empty();
+      }
+
+      return new IntersectionKernel(
+          emitters.getNormalX(),
+          emitters.getNormalY(),
+          emitters.getNormalZ(),
+          emitters.getVertexAX(),
+          emitters.getVertexAY(),
+          emitters.getVertexAZ(),
+          emitters.getCenterX(),
+          emitters.getCenterY(),
+          emitters.getCenterZ(),
+          emitters.getArea(),
+          interconnects.size(),
+          interconnects.getNormalX(),
+          interconnects.getNormalY(),
+          interconnects.getNormalZ(),
+          interconnects.getVertexAX(),
+          interconnects.getVertexAY(),
+          interconnects.getVertexAZ(),
+          interconnects.getEdgeBAX(),
+          interconnects.getEdgeBAY(),
+          interconnects.getEdgeBAZ(),
+          interconnects.getEdgeCAX(),
+          interconnects.getEdgeCAY(),
+          interconnects.getEdgeCAZ(),
+          receivers.getNormalX(),
+          receivers.getNormalY(),
+          receivers.getNormalZ(),
+          receivers.getVertexAX(),
+          receivers.getVertexAY(),
+          receivers.getVertexAZ(),
+          receivers.getCenterX(),
+          receivers.getCenterY(),
+          receivers.getCenterZ(),
+          receivers.getArea()
+      );
+    }
+  }
 
   private static final class MathOnlyKernelException extends RuntimeException {
     private MathOnlyKernelException() {
@@ -35,50 +102,32 @@ public class IntersectionKernel extends Kernel {
   @Constant private final double[] emitterCenterY;
   @Constant private final double[] emitterCenterZ;
   @Constant private final double[] emitterAreas;
-  @Constant
-  private final double[] interconnectNormalX;
-  @Constant
-  private final double[] interconnectNormalY;
-  @Constant
-  private final double[] interconnectNormalZ;
-  @Constant
-  private final double[] interconnectVertexAX;
-  @Constant
-  private final double[] interconnectVertexAY;
-  @Constant
-  private final double[] interconnectVertexAZ;
-  @Constant
-  private final double[] interconnectEdgeBAX;
-  @Constant
-  private final double[] interconnectEdgeBAY;
-  @Constant
-  private final double[] interconnectEdgeBAZ;
-  @Constant
-  private final double[] interconnectEdgeCAX;
-  @Constant
-  private final double[] interconnectEdgeCAY;
-  @Constant
-  private final double[] interconnectEdgeCAZ;
-  @Constant
-  private final double[] receiverNormalX;
-  @Constant
-  private final double[] receiverNormalY;
-  @Constant
-  private final double[] receiverNormalZ;
-  @Constant
-  private final double[] receiverVertexAX;
-  @Constant
-  private final double[] receiverVertexAY;
-  @Constant
-  private final double[] receiverVertexAZ;
-  @Constant
-  private final double[] receiverCenterX;
-  @Constant
-  private final double[] receiverCenterY;
-  @Constant
-  private final double[] receiverCenterZ;
-  @Constant
-  private final double[] receiverAreas;
+
+  @Constant private final int interconnectSize;
+  @Constant private final double[] interconnectNormalX;
+  @Constant private final double[] interconnectNormalY;
+  @Constant private final double[] interconnectNormalZ;
+  @Constant private final double[] interconnectVertexAX;
+  @Constant private final double[] interconnectVertexAY;
+  @Constant private final double[] interconnectVertexAZ;
+  @Constant private final double[] interconnectEdgeBAX;
+  @Constant private final double[] interconnectEdgeBAY;
+  @Constant private final double[] interconnectEdgeBAZ;
+  @Constant private final double[] interconnectEdgeCAX;
+  @Constant private final double[] interconnectEdgeCAY;
+  @Constant private final double[] interconnectEdgeCAZ;
+
+  @Constant private final double[] receiverNormalX;
+  @Constant private final double[] receiverNormalY;
+  @Constant private final double[] receiverNormalZ;
+  @Constant private final double[] receiverVertexAX;
+  @Constant private final double[] receiverVertexAY;
+  @Constant private final double[] receiverVertexAZ;
+  @Constant private final double[] receiverCenterX;
+  @Constant private final double[] receiverCenterY;
+  @Constant private final double[] receiverCenterZ;
+  @Constant private final double[] receiverAreas;
+
   private double[] result;
   private int emitterIndex;
   /**
@@ -192,6 +241,41 @@ public class IntersectionKernel extends Kernel {
         null,
         null,
         null);
+  }
+
+  private boolean isMathOnly() {
+    return emitterNormalX == null
+        || emitterNormalY == null
+        || emitterNormalZ == null
+        || emitterVertexAX == null
+        || emitterVertexAY == null
+        || emitterVertexAZ == null
+        || emitterCenterX == null
+        || emitterCenterY == null
+        || emitterCenterZ == null
+        || emitterAreas == null
+        || interconnectNormalX == null
+        || interconnectNormalY == null
+        || interconnectNormalZ == null
+        || interconnectVertexAX == null
+        || interconnectVertexAY == null
+        || interconnectVertexAZ == null
+        || interconnectEdgeBAX == null
+        || interconnectEdgeBAY == null
+        || interconnectEdgeBAZ == null
+        || interconnectEdgeCAX == null
+        || interconnectEdgeCAY == null
+        || interconnectEdgeCAZ == null
+        || receiverNormalX == null
+        || receiverNormalY == null
+        || receiverNormalZ == null
+        || receiverVertexAX == null
+        || receiverVertexAY == null
+        || receiverVertexAZ == null
+        || receiverCenterX == null
+        || receiverCenterY == null
+        || receiverCenterZ == null
+        || receiverAreas == null;
   }
 
   /**
@@ -337,109 +421,5 @@ public class IntersectionKernel extends Kernel {
   @VisibleForTesting
   double magnitude(double a, double b, double c) {
     return Math.sqrt(a * a + b * b + c * c);
-  }
-
-  public static class Builder {
-    private Provider<GpuGeometry> geometryProvider;
-    private GpuGeometry emitters;
-    private GpuGeometry interconnects;
-    private GpuGeometry receivers;
-
-    @Inject
-    public Builder(Provider<GpuGeometry> geometryProvider) {
-      this.geometryProvider = geometryProvider;
-    }
-
-    public Builder setEmitterFile(File emitterFile) {
-      emitters = geometryProvider.get().from(emitterFile);
-      return this;
-    }
-
-    public Builder setInterconnectFile(File interconnectFile) {
-      interconnects = geometryProvider.get().from(interconnectFile);
-      return this;
-    }
-
-    public Builder setReceiverFile(File receiverFile) {
-      receivers = geometryProvider.get().from(receiverFile);
-      return this;
-    }
-
-    public IntersectionKernel build() {
-      if (interconnects == null) {
-        interconnects = geometryProvider.get().empty();
-      }
-
-      return new IntersectionKernel(
-          emitters.getNormalX(),
-          emitters.getNormalY(),
-          emitters.getNormalZ(),
-          emitters.getVertexAX(),
-          emitters.getVertexAY(),
-          emitters.getVertexAZ(),
-          emitters.getCenterX(),
-          emitters.getCenterY(),
-          emitters.getCenterZ(),
-          emitters.getArea(),
-          interconnects.size(),
-          interconnects.getNormalX(),
-          interconnects.getNormalY(),
-          interconnects.getNormalZ(),
-          interconnects.getVertexAX(),
-          interconnects.getVertexAY(),
-          interconnects.getVertexAZ(),
-          interconnects.getEdgeBAX(),
-          interconnects.getEdgeBAY(),
-          interconnects.getEdgeBAZ(),
-          interconnects.getEdgeCAX(),
-          interconnects.getEdgeCAY(),
-          interconnects.getEdgeCAZ(),
-          receivers.getNormalX(),
-          receivers.getNormalY(),
-          receivers.getNormalZ(),
-          receivers.getVertexAX(),
-          receivers.getVertexAY(),
-          receivers.getVertexAZ(),
-          receivers.getCenterX(),
-          receivers.getCenterY(),
-          receivers.getCenterZ(),
-          receivers.getArea()
-      );
-    }
-  }
-
-  private boolean isMathOnly() {
-    return emitterNormalX == null
-        || emitterNormalY == null
-        || emitterNormalZ == null
-        || emitterVertexAX == null
-        || emitterVertexAY == null
-        || emitterVertexAZ == null
-        || emitterCenterX == null
-        || emitterCenterY == null
-        || emitterCenterZ == null
-        || emitterAreas == null
-        || interconnectNormalX == null
-        || interconnectNormalY == null
-        || interconnectNormalZ == null
-        || interconnectVertexAX == null
-        || interconnectVertexAY == null
-        || interconnectVertexAZ == null
-        || interconnectEdgeBAX == null
-        || interconnectEdgeBAY == null
-        || interconnectEdgeBAZ == null
-        || interconnectEdgeCAX == null
-        || interconnectEdgeCAY == null
-        || interconnectEdgeCAZ == null
-        || receiverNormalX == null
-        || receiverNormalY == null
-        || receiverNormalZ == null
-        || receiverVertexAX == null
-        || receiverVertexAY == null
-        || receiverVertexAZ == null
-        || receiverCenterX == null
-        || receiverCenterY == null
-        || receiverCenterZ == null
-        || receiverAreas == null;
   }
 }

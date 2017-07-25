@@ -25,7 +25,7 @@ public class ViewFactorCalculator {
     Injector injector = Guice.createInjector();
     injector.getInstance(ViewFactorCalculator.class).run(emitterFile, null, receiverFile);
 
-    // TODO(Matthew Barry): we get the right output without dividing by area at the end. Why?
+    // TODO(Matthew Barry): we get the right output without dividing by area after summing. Why?
   }
 
   public void run(File emitterFile, File interconnectFile, File receiverFile) {
