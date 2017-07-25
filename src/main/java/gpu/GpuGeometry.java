@@ -18,7 +18,7 @@ public class GpuGeometry {
   private static final int Z = 2;
 
   // Loaded from specified file.
-  private int numTriangles;
+  private int size;
 
   // Aparapi only supports single-dimension arrays.
   private double[] normalX;
@@ -44,23 +44,40 @@ public class GpuGeometry {
 
   private double[] area;
 
-  private boolean hasInterconnectGeometry;
+  // From: https://math.stackexchange.com/questions/128991/how-to-calculate-area-of-3d-triangle
+  @VisibleForTesting
+  static double areaOf(double[][] triangle) {
+    double x1 = triangle[1][X] - triangle[0][X];
+    double x2 = triangle[1][Y] - triangle[0][Y];
+    double x3 = triangle[1][Z] - triangle[0][Z];
 
-  public boolean isHasInterconnectGeometry() {
-    return hasInterconnectGeometry;
+    double y1 = triangle[2][X] - triangle[0][X];
+    double y2 = triangle[2][Y] - triangle[0][Y];
+    double y3 = triangle[2][Z] - triangle[0][Z];
+
+    return .5 * Math.sqrt(
+        (x2 * y3 - x3 * y2) * (x2 * y3 - x3 * y2)
+            + (x3 * y1 - x1 * y3) * (x3 * y1 - x1 * y3)
+            + (x1 * y2 - x2 * y1) * (x1 * y2 - x2 * y1));
   }
 
   @Inject
   public GpuGeometry() {}
 
+  int size() {
+    return size;
+  }
+
+  GpuGeometry empty() {
+    initWithSize(0);
+    return this;
+  }
+
   private void initWithSize(int size) {
+    this.size = size;
     if (size == 0) {
       size = 1;
-      hasInterconnectGeometry = false;
-    } else {
-      hasInterconnectGeometry = true;
     }
-    numTriangles = size;
 
     normalX = new double[size];
     normalY = new double[size];
@@ -85,21 +102,12 @@ public class GpuGeometry {
     area = new double[size];
   }
 
-  GpuGeometry empty() {
-    initWithSize(0);
-    return this;
-  }
-
   GpuGeometry from(File file) {
     try {
       STLFileReader reader = new STLFileReader(file);
       initWithSize(IntStream.of(reader.getNumOfFacets()).sum());
 
-      if (!hasInterconnectGeometry) {
-        return this;
-      }
-
-      for (int index = 0; index < numTriangles; index++) {
+      for (int index = 0; index < size; index++) {
         double[] normal = new double[3];
         double[][] vertices = new double[3][3];
 
@@ -128,7 +136,6 @@ public class GpuGeometry {
         area[index] = areaOf(vertices);
       }
 
-      hasInterconnectGeometry = true;
       reader.close();
       return this;
     } catch (Exception e) {
@@ -136,85 +143,67 @@ public class GpuGeometry {
     }
   }
 
-  // From: https://math.stackexchange.com/questions/128991/how-to-calculate-area-of-3d-triangle
-  @VisibleForTesting
-  static double areaOf(double[][] triangle) {
-    double x1 = triangle[1][0] - triangle[0][0];
-    double x2 = triangle[1][1] - triangle[0][1];
-    double x3 = triangle[1][2] - triangle[0][2];
-
-    double y1 = triangle[2][0] - triangle[0][0];
-    double y2 = triangle[2][1] - triangle[0][1];
-    double y3 = triangle[2][2] - triangle[0][2];
-
-    return .5 * Math.sqrt(
-        (x2 * y3 - x3 * y2) * (x2 * y3 - x3 * y2)
-            + (x3 * y1 - x1 * y3) * (x3 * y1 - x1 * y3)
-            + (x1 * y2 - x2 * y1) * (x1 * y2 - x2 * y1));
-  }
-
-
-  public double[] getNormalX() {
+  double[] getNormalX() {
     return normalX;
   }
 
-  public double[] getNormalY() {
+  double[] getNormalY() {
     return normalY;
   }
 
-  public double[] getNormalZ() {
+  double[] getNormalZ() {
     return normalZ;
   }
 
-  public double[] getVertexAX() {
+  double[] getVertexAX() {
     return vertexAX;
   }
 
-  public double[] getVertexAY() {
+  double[] getVertexAY() {
     return vertexAY;
   }
 
-  public double[] getVertexAZ() {
+  double[] getVertexAZ() {
     return vertexAZ;
   }
 
-  public double[] getEdgeBAX() {
+  double[] getEdgeBAX() {
     return edgeBAX;
   }
 
-  public double[] getEdgeBAY() {
+  double[] getEdgeBAY() {
     return edgeBAY;
   }
 
-  public double[] getEdgeBAZ() {
+  double[] getEdgeBAZ() {
     return edgeBAZ;
   }
 
-  public double[] getEdgeCAX() {
+  double[] getEdgeCAX() {
     return edgeCAX;
   }
 
-  public double[] getEdgeCAY() {
+  double[] getEdgeCAY() {
     return edgeCAY;
   }
 
-  public double[] getEdgeCAZ() {
+  double[] getEdgeCAZ() {
     return edgeCAZ;
   }
 
-  public double[] getCenterX() {
+  double[] getCenterX() {
     return centerX;
   }
 
-  public double[] getCenterY() {
+  double[] getCenterY() {
     return centerY;
   }
 
-  public double[] getCenterZ() {
+  double[] getCenterZ() {
     return centerZ;
   }
 
-  public double[] getArea() {
+  double[] getArea() {
     return area;
   }
 }

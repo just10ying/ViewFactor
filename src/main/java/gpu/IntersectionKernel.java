@@ -10,8 +10,8 @@ import java.io.File;
 import java.util.function.Consumer;
 
 public class IntersectionKernel extends Kernel {
-
-  private final boolean hasInterconnectGeometry;
+  @Constant
+  private final int interconnectSize;
 
   private static final class MathOnlyKernelException extends RuntimeException {
     private MathOnlyKernelException() {
@@ -24,12 +24,6 @@ public class IntersectionKernel extends Kernel {
   }
 
   @Constant private static final double PI = 3.141592653589793238462643383279502884197169399375105820974944592307816406286d;
-  @Constant private static final int A = 0;
-  @Constant private static final int B = 1;
-  @Constant private static final int C = 2;
-  @Constant private static final int X = 0;
-  @Constant private static final int Y = 1;
-  @Constant private static final int Z = 2;
 
   @Constant private final double[] emitterNormalX;
   @Constant private final double[] emitterNormalY;
@@ -41,30 +35,50 @@ public class IntersectionKernel extends Kernel {
   @Constant private final double[] emitterCenterY;
   @Constant private final double[] emitterCenterZ;
   @Constant private final double[] emitterAreas;
-
-  @Constant private final double[] interconnectNormalX;
-  @Constant private final double[] interconnectNormalY;
-  @Constant private final double[] interconnectNormalZ;
-  @Constant private final double[] interconnectVertexAX;
-  @Constant private final double[] interconnectVertexAY;
-  @Constant private final double[] interconnectVertexAZ;
-  @Constant private final double[] interconnectEdgeBAX;
-  @Constant private final double[] interconnectEdgeBAY;
-  @Constant private final double[] interconnectEdgeBAZ;
-  @Constant private final double[] interconnectEdgeCAX;
-  @Constant private final double[] interconnectEdgeCAY;
-  @Constant private final double[] interconnectEdgeCAZ;
-
-  @Constant private final double[] receiverNormalX;
-  @Constant private final double[] receiverNormalY;
-  @Constant private final double[] receiverNormalZ;
-  @Constant private final double[] receiverVertexAX;
-  @Constant private final double[] receiverVertexAY;
-  @Constant private final double[] receiverVertexAZ;
-  @Constant private final double[] receiverCenterX;
-  @Constant private final double[] receiverCenterY;
-  @Constant private final double[] receiverCenterZ;
-  @Constant private final double[] receiverAreas;
+  @Constant
+  private final double[] interconnectNormalX;
+  @Constant
+  private final double[] interconnectNormalY;
+  @Constant
+  private final double[] interconnectNormalZ;
+  @Constant
+  private final double[] interconnectVertexAX;
+  @Constant
+  private final double[] interconnectVertexAY;
+  @Constant
+  private final double[] interconnectVertexAZ;
+  @Constant
+  private final double[] interconnectEdgeBAX;
+  @Constant
+  private final double[] interconnectEdgeBAY;
+  @Constant
+  private final double[] interconnectEdgeBAZ;
+  @Constant
+  private final double[] interconnectEdgeCAX;
+  @Constant
+  private final double[] interconnectEdgeCAY;
+  @Constant
+  private final double[] interconnectEdgeCAZ;
+  @Constant
+  private final double[] receiverNormalX;
+  @Constant
+  private final double[] receiverNormalY;
+  @Constant
+  private final double[] receiverNormalZ;
+  @Constant
+  private final double[] receiverVertexAX;
+  @Constant
+  private final double[] receiverVertexAY;
+  @Constant
+  private final double[] receiverVertexAZ;
+  @Constant
+  private final double[] receiverCenterX;
+  @Constant
+  private final double[] receiverCenterY;
+  @Constant
+  private final double[] receiverCenterZ;
+  @Constant
+  private final double[] receiverAreas;
   private double[] result;
   private int emitterIndex;
   /**
@@ -82,7 +96,7 @@ public class IntersectionKernel extends Kernel {
       double[] emitterCenterY,
       double[] emitterCenterZ,
       double[] emitterAreas,
-      boolean hasInterconnectGeometry,
+      int interconnectSize,
       double[] interconnectNormalX,
       double[] interconnectNormalY,
       double[] interconnectNormalZ,
@@ -116,7 +130,7 @@ public class IntersectionKernel extends Kernel {
     this.emitterCenterZ = emitterCenterZ;
     this.emitterAreas = emitterAreas;
 
-    this.hasInterconnectGeometry = hasInterconnectGeometry;
+    this.interconnectSize = interconnectSize;
     this.interconnectNormalX = interconnectNormalX;
     this.interconnectNormalY = interconnectNormalY;
     this.interconnectNormalZ = interconnectNormalZ;
@@ -142,7 +156,7 @@ public class IntersectionKernel extends Kernel {
     this.receiverAreas = receiverAreas;
   }
 
-  // Used to eliminate circular dependency injection for GpuGeometry and IntersectionKernel.Builder.
+  @VisibleForTesting
   static IntersectionKernel forMathOnly() {
     return new IntersectionKernel(
         null,
@@ -155,7 +169,7 @@ public class IntersectionKernel extends Kernel {
         null,
         null,
         null,
-        false,
+        0,
         null,
         null,
         null,
@@ -209,7 +223,7 @@ public class IntersectionKernel extends Kernel {
       result = new double[receiverAreas.length];
 
       for (emitterIndex = 0; emitterIndex < receiverAreas.length; emitterIndex++) {
-        super.execute(Range.create(receiverAreas.length), hasInterconnectGeometry ? interconnectNormalX.length + 1 : 1);
+        super.execute(Range.create(receiverAreas.length));
         get(result);
         resultConsumer.accept(result);
       }
@@ -223,7 +237,6 @@ public class IntersectionKernel extends Kernel {
   @Override
   public void run() {
     int receiverIndex = getGlobalId();
-    int passId = getPassId();
 
     // Calculate the ray from the emitter to the destination triangle.
     double rayX = receiverCenterX[receiverIndex] - emitterCenterX[emitterIndex];
@@ -231,95 +244,99 @@ public class IntersectionKernel extends Kernel {
     double rayZ = receiverCenterZ[receiverIndex] - emitterCenterZ[emitterIndex];
     double rayMagnitude = magnitude(rayX, rayY, rayZ);
 
-    if (passId == 0) {
-      double emitterDenominator =
-          magnitude(
-              emitterNormalX[emitterIndex],
-              emitterNormalY[emitterIndex],
-              emitterNormalZ[emitterIndex]) * rayMagnitude;
-      double receiverDenominator =
-          magnitude(
-              receiverNormalX[receiverIndex],
-              receiverNormalY[receiverIndex],
-              receiverNormalZ[receiverIndex]) * rayMagnitude;
-
-      double emitterNormalDotRay =
-          emitterNormalX[emitterIndex] * rayX
-              + emitterNormalY[emitterIndex] * rayY
-              + emitterNormalZ[emitterIndex] * rayZ;
-      double receiverNormalDotRay =
-          receiverNormalX[receiverIndex] * rayX
-              + receiverNormalY[receiverIndex] * rayY
-              + receiverNormalZ[receiverIndex] * rayZ;
-
-      double cosThetaOne = emitterNormalDotRay / emitterDenominator;
-      double cosThetaTwo = receiverNormalDotRay / receiverDenominator;
-
-      // TODO(Matthew Barry): please verify that cosThetaOne and cosThetaTwo are correct. Dot product with opposite ray
-      // should just cause the angle to be negative, I believe.
-      if (cosThetaOne < 0) {
-        cosThetaOne = -cosThetaOne;
-      }
-      if (cosThetaTwo < 0) {
-        cosThetaTwo = -cosThetaTwo;
-      }
-
-      result[receiverIndex] = cosThetaOne * cosThetaTwo * emitterAreas[emitterIndex] * receiverAreas[receiverIndex]
-          / (PI * rayMagnitude * rayMagnitude);
-    } else {
-      int interconnectIndex = passId - 1;
-      // pvec = cross product of ray and edge2.
-      double pvecX = rayY * interconnectEdgeCAZ[interconnectIndex] - rayZ * interconnectEdgeCAY[interconnectIndex];
-      double pvecY = rayZ * interconnectEdgeCAX[interconnectIndex] - rayX * interconnectEdgeCAZ[interconnectIndex];
-      double pvecZ = rayX * interconnectEdgeCAY[interconnectIndex] - rayY * interconnectEdgeCAX[interconnectIndex];
-
-      double intersectionDistance = -1;
-
-      // Dot product of edge1 and pvec.
-      double det = interconnectEdgeBAX[interconnectIndex] * pvecX
-          + interconnectEdgeBAY[interconnectIndex] * pvecY
-          + interconnectEdgeBAZ[interconnectIndex] * pvecZ;
-
-      // Ray is parallel to plane.
-      if (det < 1e-8 && det > -1e-8) {
-        intersectionDistance = 0;
-      } else {
-        double invDet = 1 / det;
-
-        // tvec = ray from center vertex to emitterCenter.
-        double tvecX = emitterCenterX[emitterIndex] - interconnectVertexAX[interconnectIndex];
-        double tvecY = emitterCenterY[emitterIndex] - interconnectVertexAY[interconnectIndex];
-        double tvecZ = emitterCenterZ[emitterIndex] - interconnectVertexAZ[interconnectIndex];
-
-        // u = dot product of tvec and pvec.
-        double u = tvecX * pvecX + tvecY * pvecY + tvecZ * pvecZ;
-        if (u < 0 || u > 1) {
-          intersectionDistance = 0;
-        } else {
-          // qvec = cross product of tvec and edge1.
-          double qvecX = tvecY * interconnectEdgeBAZ[interconnectIndex] - tvecZ * interconnectEdgeBAY[interconnectIndex];
-          double qvecY = tvecZ * interconnectEdgeBAX[interconnectIndex] - tvecX * interconnectEdgeBAZ[interconnectIndex];
-          double qvecZ = tvecX * interconnectEdgeBAY[interconnectIndex] - tvecY * interconnectEdgeBAX[interconnectIndex];
-
-          // v = dot product of dir(ray) and qvec * invDet.
-          double v = (rayX * qvecX + rayY * qvecY + rayZ * qvecZ) * invDet;
-
-          if (v < 0 || u + v > 1) {
-            intersectionDistance = 0;
-          } else {
-            intersectionDistance = (interconnectEdgeCAX[interconnectIndex] * qvecX
-                + interconnectEdgeCAY[interconnectIndex] * qvecY
-                + interconnectEdgeCAZ[interconnectIndex] * qvecZ) * invDet;
-          }
-        }
-      }
-
-      if (intersectionDistance == 0 || intersectionDistance > rayMagnitude) {
-        result[receiverIndex] = result[receiverIndex];
-      } else {
+    // Check if any intersecting geometry exists.
+    for (int interconnectIndex = 0; interconnectIndex < interconnectSize; interconnectIndex++) {
+      double intersectionDistance = intersectionDistance(interconnectIndex, receiverIndex, rayX, rayY, rayZ, rayMagnitude);
+      // If intersecting geometry exists, the contributed view factor is zero.
+      if (intersectionDistance != 0 && intersectionDistance < rayMagnitude) {
         result[receiverIndex] = 0;
+        return;
       }
     }
+
+    double emitterDenominator =
+        magnitude(
+            emitterNormalX[emitterIndex],
+            emitterNormalY[emitterIndex],
+            emitterNormalZ[emitterIndex]) * rayMagnitude;
+    double receiverDenominator =
+        magnitude(
+            receiverNormalX[receiverIndex],
+            receiverNormalY[receiverIndex],
+            receiverNormalZ[receiverIndex]) * rayMagnitude;
+
+    double emitterNormalDotRay =
+        emitterNormalX[emitterIndex] * rayX
+            + emitterNormalY[emitterIndex] * rayY
+            + emitterNormalZ[emitterIndex] * rayZ;
+    double receiverNormalDotRay =
+        receiverNormalX[receiverIndex] * rayX
+            + receiverNormalY[receiverIndex] * rayY
+            + receiverNormalZ[receiverIndex] * rayZ;
+
+    double cosThetaOne = emitterNormalDotRay / emitterDenominator;
+    double cosThetaTwo = receiverNormalDotRay / receiverDenominator;
+
+    /*
+     * TODO(Matthew Barry): please verify that cosThetaOne and cosThetaTwo are correct. Dot product with opposite ray
+     * should just cause the angle to be negative.
+     */
+    if (cosThetaOne < 0) cosThetaOne = -cosThetaOne;
+    if (cosThetaTwo < 0) cosThetaTwo = -cosThetaTwo;
+
+    result[receiverIndex] = cosThetaOne * cosThetaTwo * emitterAreas[emitterIndex] * receiverAreas[receiverIndex]
+        / (PI * rayMagnitude * rayMagnitude);
+  }
+
+  @VisibleForTesting
+    // TODO: tests.
+  double intersectionDistance(int interconnectIndex, int receiverIndex, double rayX, double rayY, double rayZ, double rayMagnitude) {
+    // pvec = cross product of ray and edge2.
+    double pvecX = rayY * interconnectEdgeCAZ[interconnectIndex] - rayZ * interconnectEdgeCAY[interconnectIndex];
+    double pvecY = rayZ * interconnectEdgeCAX[interconnectIndex] - rayX * interconnectEdgeCAZ[interconnectIndex];
+    double pvecZ = rayX * interconnectEdgeCAY[interconnectIndex] - rayY * interconnectEdgeCAX[interconnectIndex];
+
+    double intersectionDistance = -1;
+
+    // Dot product of edge1 and pvec.
+    double det = interconnectEdgeBAX[interconnectIndex] * pvecX
+        + interconnectEdgeBAY[interconnectIndex] * pvecY
+        + interconnectEdgeBAZ[interconnectIndex] * pvecZ;
+
+    // Ray is parallel to plane.
+    if (det < 1e-8 && det > -1e-8) return 0;
+
+    double invDet = 1 / det;
+
+    // tvec = ray from center vertex to emitterCenter.
+    double tvecX = emitterCenterX[emitterIndex] - interconnectVertexAX[interconnectIndex];
+    double tvecY = emitterCenterY[emitterIndex] - interconnectVertexAY[interconnectIndex];
+    double tvecZ = emitterCenterZ[emitterIndex] - interconnectVertexAZ[interconnectIndex];
+
+    // u = dot product of tvec and pvec.
+    double u = tvecX * pvecX + tvecY * pvecY + tvecZ * pvecZ;
+    if (u < 0 || u > 1) return 0;
+
+    // qvec = cross product of tvec and edge1.
+    double qvecX = tvecY * interconnectEdgeBAZ[interconnectIndex] - tvecZ * interconnectEdgeBAY[interconnectIndex];
+    double qvecY = tvecZ * interconnectEdgeBAX[interconnectIndex] - tvecX * interconnectEdgeBAZ[interconnectIndex];
+    double qvecZ = tvecX * interconnectEdgeBAY[interconnectIndex] - tvecY * interconnectEdgeBAX[interconnectIndex];
+
+    // v = dot product of dir(ray) and qvec * invDet.
+    double v = (rayX * qvecX + rayY * qvecY + rayZ * qvecZ) * invDet;
+
+    if (v < 0 || u + v > 1) {
+      return 0;
+    } else {
+      return (interconnectEdgeCAX[interconnectIndex] * qvecX
+          + interconnectEdgeCAY[interconnectIndex] * qvecY
+          + interconnectEdgeCAZ[interconnectIndex] * qvecZ) * invDet;
+    }
+  }
+
+  @VisibleForTesting
+  double magnitude(double a, double b, double c) {
+    return Math.sqrt(a * a + b * b + c * c);
   }
 
   public static class Builder {
@@ -327,10 +344,6 @@ public class IntersectionKernel extends Kernel {
     private GpuGeometry emitters;
     private GpuGeometry interconnects;
     private GpuGeometry receivers;
-
-    @VisibleForTesting
-    Builder() {
-    }
 
     @Inject
     public Builder(Provider<GpuGeometry> geometryProvider) {
@@ -368,7 +381,7 @@ public class IntersectionKernel extends Kernel {
           emitters.getCenterY(),
           emitters.getCenterZ(),
           emitters.getArea(),
-          interconnects.isHasInterconnectGeometry(),
+          interconnects.size(),
           interconnects.getNormalX(),
           interconnects.getNormalY(),
           interconnects.getNormalZ(),
@@ -428,9 +441,5 @@ public class IntersectionKernel extends Kernel {
         || receiverCenterY == null
         || receiverCenterZ == null
         || receiverAreas == null;
-  }
-  @VisibleForTesting
-  double magnitude(double a, double b, double c) {
-    return Math.sqrt(a * a + b * b + c * c);
   }
 }

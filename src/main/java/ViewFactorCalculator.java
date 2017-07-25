@@ -4,40 +4,18 @@ import com.google.inject.Injector;
 import gpu.IntersectionKernel;
 
 import java.io.File;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.stream.DoubleStream;
 
 public class ViewFactorCalculator {
 
-  private static final int NUM_THREADS = 3;
-
   private IntersectionKernel.Builder kernelBuilder;
-  private ExecutorService adderPool;
-  private double sum;
+  private ThreadedAdder adder;
 
   @Inject
-  public ViewFactorCalculator(IntersectionKernel.Builder kernelBuilder) {
+  public ViewFactorCalculator(
+      IntersectionKernel.Builder kernelBuilder,
+      ThreadedAdder adder) {
     this.kernelBuilder = kernelBuilder;
-
-    sum = 0;
-    adderPool = Executors.newFixedThreadPool(NUM_THREADS);
-  }
-
-  public void run(File emitterFile, File interconnectFile, File receiverFile) {
-    kernelBuilder.setEmitterFile(emitterFile).setReceiverFile(receiverFile);
-    if (interconnectFile != null) {
-      kernelBuilder.setInterconnectFile(interconnectFile);
-    }
-    kernelBuilder.build().calculate(this::computePartialViewFactor, this::onComplete);
-  }
-
-  private void computePartialViewFactor(double[] result) {
-    sum += DoubleStream.of(result).sum();
-  }
-
-  private void onComplete() {
-    System.out.println(sum);
+    this.adder = adder;
   }
 
   public static void main(String[] args) {
@@ -46,5 +24,19 @@ public class ViewFactorCalculator {
 
     Injector injector = Guice.createInjector();
     injector.getInstance(ViewFactorCalculator.class).run(emitterFile, null, receiverFile);
+
+    // TODO(Matthew Barry): we get the right output without dividing by area at the end. Why?
+  }
+
+  public void run(File emitterFile, File interconnectFile, File receiverFile) {
+    kernelBuilder.setEmitterFile(emitterFile).setReceiverFile(receiverFile);
+    if (interconnectFile != null) {
+      kernelBuilder.setInterconnectFile(interconnectFile);
+    }
+    kernelBuilder.build().calculate(adder::add, this::onComplete);
+  }
+
+  private void onComplete() {
+    System.out.println(adder.finishAndGet());
   }
 }
