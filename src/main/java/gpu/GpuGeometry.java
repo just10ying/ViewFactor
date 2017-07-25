@@ -44,10 +44,22 @@ public class GpuGeometry {
 
   private double[] area;
 
+  private boolean hasInterconnectGeometry;
+
+  public boolean isHasInterconnectGeometry() {
+    return hasInterconnectGeometry;
+  }
+
   @Inject
   public GpuGeometry() {}
 
   private void initWithSize(int size) {
+    if (size == 0) {
+      size = 1;
+      hasInterconnectGeometry = false;
+    } else {
+      hasInterconnectGeometry = true;
+    }
     numTriangles = size;
 
     normalX = new double[size];
@@ -83,6 +95,10 @@ public class GpuGeometry {
       STLFileReader reader = new STLFileReader(file);
       initWithSize(IntStream.of(reader.getNumOfFacets()).sum());
 
+      if (!hasInterconnectGeometry) {
+        return this;
+      }
+
       for (int index = 0; index < numTriangles; index++) {
         double[] normal = new double[3];
         double[][] vertices = new double[3][3];
@@ -111,6 +127,8 @@ public class GpuGeometry {
 
         area[index] = areaOf(vertices);
       }
+
+      hasInterconnectGeometry = true;
       reader.close();
       return this;
     } catch (Exception e) {

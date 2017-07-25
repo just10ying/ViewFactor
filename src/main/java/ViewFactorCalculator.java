@@ -32,7 +32,7 @@ public class ViewFactorCalculator {
     kernelBuilder.build().calculate(this::computePartialViewFactor, this::onComplete);
   }
 
-  private void computePartialViewFactor(double[] result, double dA) {
+  private void computePartialViewFactor(double[] result) {
     sum += DoubleStream.of(result).sum();
   }
 
