@@ -375,8 +375,7 @@ public class IntersectionKernel extends Kernel {
   }
 
   // TODO: tests.
-  @VisibleForTesting
-  double intersectionDistance(int interconnectIndex, int receiverIndex, double rayX, double rayY, double rayZ, double rayMagnitude) {
+  private double intersectionDistance(int interconnectIndex, int receiverIndex, double rayX, double rayY, double rayZ, double rayMagnitude) {
     // pvec = cross product of ray and edge2.
     double pvecX = rayY * interconnectEdgeCAZ[interconnectIndex] - rayZ * interconnectEdgeCAY[interconnectIndex];
     double pvecY = rayZ * interconnectEdgeCAX[interconnectIndex] - rayX * interconnectEdgeCAZ[interconnectIndex];

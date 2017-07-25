@@ -1,6 +1,5 @@
 package gpu;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Inject;
 import org.j3d.loaders.stl.STLFileReader;
 
@@ -97,8 +96,8 @@ public class GpuGeometry {
     }
   }
   // From: https://math.stackexchange.com/questions/128991/how-to-calculate-area-of-3d-triangle
-  @VisibleForTesting
-  static double areaOf(double[][] triangle) {
+  // TODO: tests.
+  private static double areaOf(double[][] triangle) {
     double x1 = triangle[1][X] - triangle[0][X];
     double x2 = triangle[1][Y] - triangle[0][Y];
     double x3 = triangle[1][Z] - triangle[0][Z];
