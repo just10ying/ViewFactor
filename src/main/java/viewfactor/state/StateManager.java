@@ -1,4 +1,4 @@
-package viewfactor.events;
+package viewfactor.state;
 
 import com.google.common.base.Stopwatch;
 import com.google.inject.Inject;
@@ -8,42 +8,61 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-public class EventManager implements Events {
+public class StateManager implements Events {
 
   public interface Subscriber {
+    void onStart();
+    void onStop(ElapsedTime timer);
     void onParseStlStart();
-    void onParseStlFinish(ElapsedTime stopwatch);
+    void onParseStlFinish(ElapsedTime timer);
     void onBufferTransferStart();
-    void onBufferTransferFinish(ElapsedTime stopwatch);
+    void onBufferTransferFinish(ElapsedTime timer);
     void onComputationStart();
-    void onComputationProgress(ElapsedTime stopwatch, int current, int max);
-    void onComputationFinish(ElapsedTime stopwatch, double result);
+    void onComputationProgress(ElapsedTime timer, int current, int max);
+    void onComputationFinish(ElapsedTime timer, double result);
     void onInfo(String info);
     void onException(Exception e);
   }
 
+  private final Provider<Stopwatch> stopwatchProvider;
+  private final List<Subscriber> subscribers;
+
+  private Stopwatch allStopWatch;
   private Stopwatch stlStopwatch;
   private Stopwatch bufferTransferStopwatch;
   private Stopwatch computationStopwatch;
-  private List<Subscriber> subscribers;
 
   @Inject
-  public EventManager(Provider<Stopwatch> stopwatchProvider) {
-    stlStopwatch = stopwatchProvider.get();
-    bufferTransferStopwatch = stopwatchProvider.get();
-    computationStopwatch = stopwatchProvider.get();
-
+  public StateManager(Provider<Stopwatch> stopwatchProvider, ConsoleLogger consoleLogger) {
+    this.stopwatchProvider = stopwatchProvider;
     subscribers = new ArrayList<>();
+    subscribers.add(consoleLogger); // By default, include a console logger.
   }
 
-  public void addSubscriber(Subscriber subscriber) {
+  public void registerSubscriber(Subscriber subscriber) {
     subscribers.add(subscriber);
   }
 
   @Override
+  public void start() {
+    allStopWatch = stopwatchProvider.get();
+    stlStopwatch = stopwatchProvider.get();
+    bufferTransferStopwatch = stopwatchProvider.get();
+    computationStopwatch = stopwatchProvider.get();
+    subscribers.forEach(Subscriber::onStart);
+    allStopWatch.start();
+  }
+
+  @Override
+  public void finish() {
+    allStopWatch.stop();
+    subscribers.forEach(subscriber -> subscriber.onStop(new ElapsedTime(allStopWatch)));
+  }
+
+  @Override
   public void startParseStl() {
-    stlStopwatch.start();
     subscribers.forEach(Subscriber::onParseStlStart);
+    stlStopwatch.start();
   }
 
   @Override
@@ -54,8 +73,8 @@ public class EventManager implements Events {
 
   @Override
   public void startBufferTransfer() {
-    bufferTransferStopwatch.start();
     subscribers.forEach(Subscriber::onBufferTransferStart);
+    bufferTransferStopwatch.start();
   }
 
   @Override
@@ -66,8 +85,8 @@ public class EventManager implements Events {
 
   @Override
   public void startComputation() {
-    computationStopwatch.start();
     subscribers.forEach(Subscriber::onComputationStart);
+    computationStopwatch.start();
   }
 
   @Override

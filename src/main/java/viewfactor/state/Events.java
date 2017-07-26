@@ -1,6 +1,8 @@
-package viewfactor.events;
+package viewfactor.state;
 
 interface Events {
+  void start();
+  void finish();
   void startParseStl();
   void finishParseStl();
   void startBufferTransfer();

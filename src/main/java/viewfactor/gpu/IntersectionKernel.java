@@ -6,7 +6,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
 import org.j3d.loaders.stl.STLFileReader;
-import viewfactor.events.EventManager;
+import viewfactor.state.StateManager;
 
 import java.util.function.Consumer;
 
@@ -14,16 +14,16 @@ public class IntersectionKernel extends Kernel {
 
   public static class Builder {
     private final Provider<GpuGeometry> geometryProvider;
-    private final EventManager eventManager;
+    private final StateManager stateManager;
 
     private STLFileReader emitterReader;
     private STLFileReader receiverReader;
     private STLFileReader interconnectReader;
 
     @Inject
-    public Builder(Provider<GpuGeometry> geometryProvider, EventManager eventManager) {
+    public Builder(Provider<GpuGeometry> geometryProvider, StateManager stateManager) {
       this.geometryProvider = geometryProvider;
-      this.eventManager = eventManager;
+      this.stateManager = stateManager;
     }
 
     public Builder setEmitterReader(STLFileReader emitterFile) {
@@ -42,15 +42,15 @@ public class IntersectionKernel extends Kernel {
     }
 
     public IntersectionKernel build() {
-      eventManager.startParseStl();
+      stateManager.startParseStl();
       GpuGeometry emitters = geometryProvider.get().from(emitterReader);
       GpuGeometry receivers = geometryProvider.get().from(receiverReader);
       GpuGeometry interconnects = interconnectReader == null
           ? geometryProvider.get().empty() : geometryProvider.get().from(interconnectReader);
-      eventManager.finishParseStl();
+      stateManager.finishParseStl();
 
       return new IntersectionKernel(
-          eventManager,
+          stateManager,
           emitters.getNormalX(),
           emitters.getNormalY(),
           emitters.getNormalZ(),
@@ -139,13 +139,13 @@ public class IntersectionKernel extends Kernel {
   private double[] result;
   private int emitterIndex; // TODO(justinying): does the GPU properly get this number?
 
-  private final EventManager eventManager;
+  private final StateManager stateManager;
   /**
    * Constructor, used only by the Builder class. The builder exists so the above fields can be final, allowing Aparapi
    * to put them in faster memory.
    */
   private IntersectionKernel(
-      EventManager eventManager,
+      StateManager stateManager,
       double[] emitterNormalX,
       double[] emitterNormalY,
       double[] emitterNormalZ,
@@ -179,7 +179,7 @@ public class IntersectionKernel extends Kernel {
       double[] receiverCenterY,
       double[] receiverCenterZ,
       double[] receiverAreas) {
-    this.eventManager = eventManager;
+    this.stateManager = stateManager;
 
     this.emitterNormalX = emitterNormalX;
     this.emitterNormalY = emitterNormalY;
@@ -297,40 +297,36 @@ public class IntersectionKernel extends Kernel {
    * to resultConsumer. Calls completionHandler onComplete when the task is finished.
    */
   public void calculate(Consumer<double[]> resultConsumer, KernelComplete completionHandler) {
-    try {
-      if (isMathOnly()) throw new MathOnlyKernelException();
+    if (isMathOnly()) throw new MathOnlyKernelException();
 
-      eventManager.startBufferTransfer();
-      setExplicit(true);
-      put(emitterNormalX).put(emitterNormalY).put(emitterNormalZ);
-      put(emitterVertexAX).put(emitterVertexAY).put(emitterVertexAZ);
-      put(emitterCenterX).put(emitterCenterY).put(emitterCenterZ);
-      put(emitterAreas);
+    stateManager.startBufferTransfer();
+    setExplicit(true);
+    put(emitterNormalX).put(emitterNormalY).put(emitterNormalZ);
+    put(emitterVertexAX).put(emitterVertexAY).put(emitterVertexAZ);
+    put(emitterCenterX).put(emitterCenterY).put(emitterCenterZ);
+    put(emitterAreas);
 
-      put(interconnectNormalX).put(interconnectNormalY).put(interconnectNormalZ);
-      put(interconnectVertexAX).put(interconnectVertexAY).put(interconnectVertexAZ);
-      put(interconnectEdgeBAX).put(interconnectEdgeBAY).put(interconnectEdgeBAZ);
-      put(interconnectEdgeCAX).put(interconnectEdgeCAY).put(interconnectEdgeCAZ);
+    put(interconnectNormalX).put(interconnectNormalY).put(interconnectNormalZ);
+    put(interconnectVertexAX).put(interconnectVertexAY).put(interconnectVertexAZ);
+    put(interconnectEdgeBAX).put(interconnectEdgeBAY).put(interconnectEdgeBAZ);
+    put(interconnectEdgeCAX).put(interconnectEdgeCAY).put(interconnectEdgeCAZ);
 
-      put(receiverNormalX).put(receiverNormalY).put(receiverNormalZ);
-      put(receiverVertexAX).put(receiverVertexAY).put(receiverVertexAZ);
-      put(receiverCenterX).put(receiverCenterY).put(receiverCenterZ);
-      put(receiverAreas);
+    put(receiverNormalX).put(receiverNormalY).put(receiverNormalZ);
+    put(receiverVertexAX).put(receiverVertexAY).put(receiverVertexAZ);
+    put(receiverCenterX).put(receiverCenterY).put(receiverCenterZ);
+    put(receiverAreas);
 
-      result = new double[receiverAreas.length];
+    result = new double[receiverAreas.length];
 
-      eventManager.finishBufferTransfer();
-      eventManager.startComputation();
-      for (emitterIndex = 0; emitterIndex < receiverAreas.length; emitterIndex++) {
-        super.execute(Range.create(receiverAreas.length));
-        eventManager.updateComputationProgress(emitterIndex, receiverAreas.length);
-        get(result);
-        resultConsumer.accept(result);
-      }
-      eventManager.finishComputation(completionHandler.onComplete());
-    } catch (Exception e) {
-      eventManager.exception(e);
+    stateManager.finishBufferTransfer();
+    stateManager.startComputation();
+    for (emitterIndex = 0; emitterIndex < receiverAreas.length; emitterIndex++) {
+      super.execute(Range.create(receiverAreas.length));
+      stateManager.updateComputationProgress(emitterIndex, receiverAreas.length);
+      get(result);
+      resultConsumer.accept(result);
     }
+    stateManager.finishComputation(completionHandler.onComplete());
   }
 
   /**

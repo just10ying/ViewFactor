@@ -2,34 +2,40 @@ package viewfactor;
 
 import com.google.inject.Inject;
 import org.j3d.loaders.stl.STLFileReader;
-import viewfactor.events.ConsoleLogger;
-import viewfactor.events.EventManager;
 import viewfactor.gpu.IntersectionKernel;
+import viewfactor.state.StateManager;
 
 public class ViewFactorCalculator {
 
   private IntersectionKernel.Builder kernelBuilder;
+  private StateManager stateManager;
   private ThreadedAdder adder;
 
   @Inject
   public ViewFactorCalculator(
       IntersectionKernel.Builder kernelBuilder,
       ThreadedAdder adder,
-      EventManager eventManager,
-      ConsoleLogger consoleLogger) {
+      StateManager stateManager) {
     this.kernelBuilder = kernelBuilder;
     this.adder = adder;
-    // By default include a console logger.
-    eventManager.addSubscriber(consoleLogger);
+    this.stateManager = stateManager;
   }
 
   public void run(STLFileReader emitterFile, STLFileReader receiverFile, STLFileReader interconnectFile) {
-    new Thread(() -> kernelBuilder
-        .setEmitterReader(emitterFile)
-        .setInterconnectReader(interconnectFile)
-        .setReceiverReader(receiverFile)
-        .build()
-        // TODO(Matthew Barry): we get the right result without dividing by area after summing. Why is this?
-        .calculate(adder::add, adder::finishAndGet)).run();
+    try {
+      stateManager.start();
+      kernelBuilder
+          .setEmitterReader(emitterFile)
+          .setInterconnectReader(interconnectFile)
+          .setReceiverReader(receiverFile)
+          .build()
+          // TODO(Matthew Barry): we get the right result without dividing by area after summing. Why is this?
+          .calculate(adder::add, adder::finishAndGet);
+      stateManager.finish();
+    } catch (Exception e) {
+      stateManager.exception(e);
+      stateManager.finish();
+    }
+
   }
 }

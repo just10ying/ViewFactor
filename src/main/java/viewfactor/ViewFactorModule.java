@@ -5,7 +5,8 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Provider;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
-import viewfactor.events.EventManager;
+import viewfactor.state.ConsoleLogger;
+import viewfactor.state.StateManager;
 
 public class ViewFactorModule extends AbstractModule {
   @Override
@@ -14,7 +15,7 @@ public class ViewFactorModule extends AbstractModule {
   }
 
   @Provides @Singleton
-  EventManager provideLogger(Provider<Stopwatch> timerProvider) {
-    return new EventManager(timerProvider);
+  StateManager provideStateManager(Provider<Stopwatch> timerProvider, ConsoleLogger consoleLogger) {
+    return new StateManager(timerProvider, consoleLogger);
   }
 }

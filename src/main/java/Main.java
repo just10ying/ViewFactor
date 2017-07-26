@@ -8,22 +8,24 @@ import java.io.File;
 import java.io.IOException;
 
 public class Main {
-
   public static void main(String[] args) {
-    run();
-  }
+    Injector injector = Guice.createInjector(new ViewFactorModule());
+    if (args.length >= 2) {
+      File emitterFile = new File(args[0]);
+      File receiverFile = new File(args[1]);
+      File interconnectFile = args.length == 3 ? new File(args[2]) : null;
 
-  public static void run() {
-    try {
-      STLFileReader emitterReader = new STLFileReader(new File("stl/bottom.stl"));
-      STLFileReader receiverReader = new STLFileReader(new File("stl/top.stl"));
-      STLFileReader interconnectReader = null;
-      interconnectReader = new STLFileReader(new File("stl/top.stl"));
-
-      Injector injector = Guice.createInjector(new ViewFactorModule());
-      injector.getInstance(ViewFactorCalculator.class).run(emitterReader, receiverReader, interconnectReader);
-    } catch (IOException e) {
-      e.printStackTrace();
+      try {
+        STLFileReader emitterReader = new STLFileReader(emitterFile);
+        STLFileReader receiverReader = new STLFileReader(receiverFile);
+        STLFileReader interconnectReader = interconnectFile == null ? null : new STLFileReader(interconnectFile);
+        injector.getInstance(ViewFactorCalculator.class).run(emitterReader, receiverReader, interconnectReader);
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    } else {
+      ServerConnection serverConnection = injector.getInstance(ServerConnection.class);
+      serverConnection.connect(args.length == 0 ? null : args[0]);
     }
   }
 }
