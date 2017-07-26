@@ -1,49 +1,56 @@
-package gpu;
+package viewfactor.gpu;
 
 import com.aparapi.Kernel;
 import com.aparapi.Range;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
+import org.j3d.loaders.stl.STLFileReader;
+import viewfactor.events.EventManager;
 
-import java.io.File;
 import java.util.function.Consumer;
 
 public class IntersectionKernel extends Kernel {
 
   public static class Builder {
-    private Provider<GpuGeometry> geometryProvider;
-    private GpuGeometry emitters;
-    private GpuGeometry interconnects;
-    private GpuGeometry receivers;
+    private final Provider<GpuGeometry> geometryProvider;
+    private final EventManager eventManager;
+
+    private STLFileReader emitterReader;
+    private STLFileReader receiverReader;
+    private STLFileReader interconnectReader;
 
     @Inject
-    public Builder(Provider<GpuGeometry> geometryProvider) {
+    public Builder(Provider<GpuGeometry> geometryProvider, EventManager eventManager) {
       this.geometryProvider = geometryProvider;
+      this.eventManager = eventManager;
     }
 
-    public Builder setEmitterFile(File emitterFile) {
-      emitters = geometryProvider.get().from(emitterFile);
+    public Builder setEmitterReader(STLFileReader emitterFile) {
+      this.emitterReader = emitterFile;
       return this;
     }
 
-    public Builder setInterconnectFile(File interconnectFile) {
-      interconnects = interconnectFile == null
-          ? geometryProvider.get().empty() : geometryProvider.get().from(interconnectFile);
+    public Builder setInterconnectReader(STLFileReader interconnectFile) {
+      this.interconnectReader = interconnectFile;
       return this;
     }
 
-    public Builder setReceiverFile(File receiverFile) {
-      receivers = geometryProvider.get().from(receiverFile);
+    public Builder setReceiverReader(STLFileReader receiverFile) {
+      this.receiverReader = receiverFile;
       return this;
     }
 
     public IntersectionKernel build() {
-      if (interconnects == null) {
-        interconnects = geometryProvider.get().empty();
-      }
+      eventManager.startParseStl();
+      GpuGeometry emitters = geometryProvider.get().from(emitterReader);
+      GpuGeometry receivers = geometryProvider.get().from(receiverReader);
+      GpuGeometry interconnects = interconnectReader == null
+          ? geometryProvider.get().empty() : geometryProvider.get().from(interconnectReader);
+      eventManager.finishParseStl();
 
       return new IntersectionKernel(
+          eventManager,
           emitters.getNormalX(),
           emitters.getNormalY(),
           emitters.getNormalZ(),
@@ -88,7 +95,7 @@ public class IntersectionKernel extends Kernel {
   }
 
   public interface KernelComplete {
-    void onComplete();
+    double onComplete();
   }
 
   @Constant private static final double PI = 3.141592653589793238462643383279502884197169399375105820974944592307816406286d;
@@ -130,13 +137,15 @@ public class IntersectionKernel extends Kernel {
   @Constant private final double[] receiverAreas;
 
   private double[] result;
-  private int emitterIndex;
+  private int emitterIndex; // TODO(justinying): does the GPU properly get this number?
 
+  private final EventManager eventManager;
   /**
    * Constructor, used only by the Builder class. The builder exists so the above fields can be final, allowing Aparapi
    * to put them in faster memory.
    */
   private IntersectionKernel(
+      EventManager eventManager,
       double[] emitterNormalX,
       double[] emitterNormalY,
       double[] emitterNormalZ,
@@ -170,6 +179,8 @@ public class IntersectionKernel extends Kernel {
       double[] receiverCenterY,
       double[] receiverCenterZ,
       double[] receiverAreas) {
+    this.eventManager = eventManager;
+
     this.emitterNormalX = emitterNormalX;
     this.emitterNormalY = emitterNormalY;
     this.emitterNormalZ = emitterNormalZ;
@@ -210,6 +221,7 @@ public class IntersectionKernel extends Kernel {
   @VisibleForTesting
   static IntersectionKernel forMathOnly() {
     return new IntersectionKernel(
+        null,
         null,
         null,
         null,
@@ -285,11 +297,10 @@ public class IntersectionKernel extends Kernel {
    * to resultConsumer. Calls completionHandler onComplete when the task is finished.
    */
   public void calculate(Consumer<double[]> resultConsumer, KernelComplete completionHandler) {
-    if (isMathOnly()) {
-      throw new MathOnlyKernelException();
-    }
-    // Run in parallel.
-    new Thread(() -> {
+    try {
+      if (isMathOnly()) throw new MathOnlyKernelException();
+
+      eventManager.startBufferTransfer();
       setExplicit(true);
       put(emitterNormalX).put(emitterNormalY).put(emitterNormalZ);
       put(emitterVertexAX).put(emitterVertexAY).put(emitterVertexAZ);
@@ -308,13 +319,18 @@ public class IntersectionKernel extends Kernel {
 
       result = new double[receiverAreas.length];
 
+      eventManager.finishBufferTransfer();
+      eventManager.startComputation();
       for (emitterIndex = 0; emitterIndex < receiverAreas.length; emitterIndex++) {
         super.execute(Range.create(receiverAreas.length));
+        eventManager.updateComputationProgress(emitterIndex, receiverAreas.length);
         get(result);
         resultConsumer.accept(result);
       }
-      completionHandler.onComplete();
-    }).run();
+      eventManager.finishComputation(completionHandler.onComplete());
+    } catch (Exception e) {
+      eventManager.exception(e);
+    }
   }
 
   /**
@@ -334,7 +350,7 @@ public class IntersectionKernel extends Kernel {
     for (int interconnectIndex = 0; interconnectIndex < interconnectSize; interconnectIndex++) {
       double intersectionDistance = intersectionDistance(interconnectIndex, receiverIndex, rayX, rayY, rayZ, rayMagnitude);
       // If intersecting geometry exists, the contributed view factor is zero.
-      if (intersectionDistance != 0 && intersectionDistance < rayMagnitude) {
+      if (intersectionDistance != 0 && intersectionDistance <= rayMagnitude) {
         result[receiverIndex] = 0;
         return;
       }

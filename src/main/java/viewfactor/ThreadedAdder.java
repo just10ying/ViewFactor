@@ -1,3 +1,5 @@
+package viewfactor;
+
 import com.google.inject.Inject;
 
 import java.util.concurrent.ExecutorService;
