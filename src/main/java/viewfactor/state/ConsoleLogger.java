@@ -69,4 +69,9 @@ public class ConsoleLogger implements StateManager.Subscriber{
     System.out.println("[ERROR]: " + e.getMessage());
     e.printStackTrace();
   }
+
+  @Override
+  public void onStateChange(StateManager.State state) {
+
+  }
 }

@@ -22,20 +22,14 @@ public class ViewFactorCalculator {
   }
 
   public void run(STLFileReader emitterFile, STLFileReader receiverFile, STLFileReader interconnectFile) {
-    try {
-      stateManager.start();
-      kernelBuilder
-          .setEmitterReader(emitterFile)
-          .setInterconnectReader(interconnectFile)
-          .setReceiverReader(receiverFile)
-          .build()
-          // TODO(Matthew Barry): we get the right result without dividing by area after summing. Why is this?
-          .calculate(adder::add, adder::finishAndGet);
-      stateManager.finish();
-    } catch (Exception e) {
-      stateManager.exception(e);
-      stateManager.finish();
-    }
-
+    stateManager.start();
+    kernelBuilder
+        .setEmitterReader(emitterFile)
+        .setInterconnectReader(interconnectFile)
+        .setReceiverReader(receiverFile)
+        .build()
+        // TODO(Matthew Barry): we get the right result without dividing by area after summing. Why is this?
+        .calculate(adder::add, adder::finishAndGet);
+    stateManager.finish();
   }
 }

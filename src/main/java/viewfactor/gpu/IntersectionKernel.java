@@ -326,6 +326,7 @@ public class IntersectionKernel extends Kernel {
       get(result);
       resultConsumer.accept(result);
     }
+    stateManager.updateComputationProgress(emitterIndex, receiverAreas.length);
     stateManager.finishComputation(completionHandler.onComplete());
   }
 

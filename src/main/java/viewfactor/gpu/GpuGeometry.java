@@ -3,7 +3,6 @@ package viewfactor.gpu;
 import com.google.inject.Inject;
 import org.j3d.loaders.stl.STLFileReader;
 
-import java.io.IOException;
 import java.util.stream.IntStream;
 
 public class GpuGeometry {
@@ -145,38 +144,42 @@ public class GpuGeometry {
     return area;
   }
 
-  private void initFromStlFileReader(STLFileReader reader) throws IOException {
-    initWithSize(IntStream.of(reader.getNumOfFacets()).sum());
+  private void initFromStlFileReader(STLFileReader reader) {
+    try {
+      initWithSize(IntStream.of(reader.getNumOfFacets()).sum());
 
-    for (int index = 0; index < size; index++) {
-      double[] normal = new double[3];
-      double[][] vertices = new double[3][3];
+      for (int index = 0; index < size; index++) {
+        double[] normal = new double[3];
+        double[][] vertices = new double[3][3];
 
-      reader.getNextFacet(normal, vertices);
+        reader.getNextFacet(normal, vertices);
 
-      normalX[index] = normal[X];
-      normalY[index] = normal[Y];
-      normalZ[index] = normal[Z];
+        normalX[index] = normal[X];
+        normalY[index] = normal[Y];
+        normalZ[index] = normal[Z];
 
-      vertexAX[index] = vertices[A][X];
-      vertexAY[index] = vertices[A][Y];
-      vertexAZ[index] = vertices[A][Z];
+        vertexAX[index] = vertices[A][X];
+        vertexAY[index] = vertices[A][Y];
+        vertexAZ[index] = vertices[A][Z];
 
-      edgeBAX[index] = vertices[B][X] - vertices[A][X];
-      edgeBAY[index] = vertices[B][Y] - vertices[A][Y];
-      edgeBAZ[index] = vertices[B][Z] - vertices[A][Z];
+        edgeBAX[index] = vertices[B][X] - vertices[A][X];
+        edgeBAY[index] = vertices[B][Y] - vertices[A][Y];
+        edgeBAZ[index] = vertices[B][Z] - vertices[A][Z];
 
-      edgeCAX[index] = vertices[C][X] - vertices[A][X];
-      edgeCAY[index] = vertices[C][Y] - vertices[A][Y];
-      edgeCAZ[index] = vertices[C][Z] - vertices[A][Z];
+        edgeCAX[index] = vertices[C][X] - vertices[A][X];
+        edgeCAY[index] = vertices[C][Y] - vertices[A][Y];
+        edgeCAZ[index] = vertices[C][Z] - vertices[A][Z];
 
-      centerX[index] = (vertices[A][X] + vertices[B][X] + vertices[C][X]) / 3;
-      centerY[index] = (vertices[A][Y] + vertices[B][Y] + vertices[C][Y]) / 3;
-      centerZ[index] = (vertices[A][Z] + vertices[B][Z] + vertices[C][Z]) / 3;
+        centerX[index] = (vertices[A][X] + vertices[B][X] + vertices[C][X]) / 3;
+        centerY[index] = (vertices[A][Y] + vertices[B][Y] + vertices[C][Y]) / 3;
+        centerZ[index] = (vertices[A][Z] + vertices[B][Z] + vertices[C][Z]) / 3;
 
-      area[index] = areaOf(vertices);
+        area[index] = areaOf(vertices);
+      }
+      reader.close();
+    } catch (Exception e) {
+      throw new RuntimeException(e);
     }
-    reader.close();
   }
 
   private void initWithSize(int size) {

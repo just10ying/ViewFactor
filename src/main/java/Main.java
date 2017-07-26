@@ -5,7 +5,6 @@ import viewfactor.ViewFactorCalculator;
 import viewfactor.ViewFactorModule;
 
 import java.io.File;
-import java.io.IOException;
 
 public class Main {
   public static void main(String[] args) {
@@ -20,7 +19,7 @@ public class Main {
         STLFileReader receiverReader = new STLFileReader(receiverFile);
         STLFileReader interconnectReader = interconnectFile == null ? null : new STLFileReader(interconnectFile);
         injector.getInstance(ViewFactorCalculator.class).run(emitterReader, receiverReader, interconnectReader);
-      } catch (IOException e) {
+      } catch (Exception e) {
         e.printStackTrace();
       }
     } else {

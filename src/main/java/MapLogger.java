@@ -1,7 +1,6 @@
-package viewfactor.state;
-
 import com.google.common.base.Joiner;
 import com.google.inject.Inject;
+import viewfactor.state.StateManager;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;
@@ -16,41 +15,36 @@ public class MapLogger implements StateManager.Subscriber {
   private static final String RESULT = "result";
   private static final String FAILURE = "failure";
 
-  private enum State {
-    RUNNING, IDLE;
-  }
-
   private static final DecimalFormat PERCENTAGE_FORMATTER = new DecimalFormat("##.##%");
 
-  private State state;
   private List<String> messages;
   private String percentage;
+  private StateManager.State state;
   private boolean failure;
   private double result;
 
   @Inject
   public MapLogger() {
-    state = State.RUNNING;
-    percentage = "0";
+    percentage = PERCENTAGE_FORMATTER.format(0);
+    state = StateManager.State.INIT;
     failure = false;
     result = -1;
     messages = new ArrayList<>();
   }
 
   public Map<String, String> get() {
-    Map<String, String> state = new HashMap<>();
-    state.put(MESSAGES_KEY, Joiner.on(',').join(messages));
-    state.put(STATE_KEY, state.toString());
-    state.put(PERCENTAGE_KEY, percentage);
-    state.put(FAILURE, String.valueOf(failure));
-    state.put(RESULT, String.valueOf(result));
+    Map<String, String> returnValue = new HashMap<>();
+    returnValue.put(MESSAGES_KEY, Joiner.on(',').join(messages));
+    returnValue.put(STATE_KEY, state.toString());
+    returnValue.put(PERCENTAGE_KEY, percentage);
+    returnValue.put(FAILURE, String.valueOf(failure));
+    returnValue.put(RESULT, String.valueOf(result));
     messages.clear();
-    return state;
+    return returnValue;
   }
 
   @Override
   public void onStart() {
-    state = State.RUNNING;
     percentage = "0";
     failure = false;
     result = -1;
@@ -59,7 +53,6 @@ public class MapLogger implements StateManager.Subscriber {
 
   @Override
   public void onStop(StateManager.ElapsedTime timer) {
-    this.state = State.IDLE;
     messages.add("All operations completed in " + timer);
   }
 
@@ -112,8 +105,11 @@ public class MapLogger implements StateManager.Subscriber {
   @Override
   public void onException(Exception e) {
     messages.add("[ERROR]: " + e.getMessage());
-    e.printStackTrace();
-    state = State.IDLE;
     failure = true;
+  }
+
+  @Override
+  public void onStateChange(StateManager.State state) {
+    this.state = state;
   }
 }
