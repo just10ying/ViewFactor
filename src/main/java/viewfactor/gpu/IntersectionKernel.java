@@ -6,7 +6,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
 import org.j3d.loaders.stl.STLFileReader;
-import viewfactor.state.StateManager;
+import viewfactor.events.EventManager;
 
 import java.util.function.Consumer;
 
@@ -14,16 +14,16 @@ public class IntersectionKernel extends Kernel {
 
   public static class Builder {
     private final Provider<GpuGeometry> geometryProvider;
-    private final StateManager stateManager;
+    private final EventManager eventManager;
 
     private STLFileReader emitterReader;
     private STLFileReader receiverReader;
     private STLFileReader interconnectReader;
 
     @Inject
-    public Builder(Provider<GpuGeometry> geometryProvider, StateManager stateManager) {
+    public Builder(Provider<GpuGeometry> geometryProvider, EventManager eventManager) {
       this.geometryProvider = geometryProvider;
-      this.stateManager = stateManager;
+      this.eventManager = eventManager;
     }
 
     public Builder setEmitterReader(STLFileReader emitterFile) {
@@ -42,15 +42,15 @@ public class IntersectionKernel extends Kernel {
     }
 
     public IntersectionKernel build() {
-      stateManager.startParseStl();
+      eventManager.startParseStl();
       GpuGeometry emitters = geometryProvider.get().from(emitterReader);
       GpuGeometry receivers = geometryProvider.get().from(receiverReader);
       GpuGeometry interconnects = interconnectReader == null
           ? geometryProvider.get().empty() : geometryProvider.get().from(interconnectReader);
-      stateManager.finishParseStl();
+      eventManager.finishParseStl();
 
       return new IntersectionKernel(
-          stateManager,
+          eventManager,
           emitters.getNormalX(),
           emitters.getNormalY(),
           emitters.getNormalZ(),
@@ -139,13 +139,13 @@ public class IntersectionKernel extends Kernel {
   private double[] result;
   private int emitterIndex; // TODO(justinying): does the GPU properly get this number?
 
-  private final StateManager stateManager;
+  private final EventManager eventManager;
   /**
    * Constructor, used only by the Builder class. The builder exists so the above fields can be final, allowing Aparapi
    * to put them in faster memory.
    */
   private IntersectionKernel(
-      StateManager stateManager,
+      EventManager eventManager,
       double[] emitterNormalX,
       double[] emitterNormalY,
       double[] emitterNormalZ,
@@ -179,7 +179,7 @@ public class IntersectionKernel extends Kernel {
       double[] receiverCenterY,
       double[] receiverCenterZ,
       double[] receiverAreas) {
-    this.stateManager = stateManager;
+    this.eventManager = eventManager;
 
     this.emitterNormalX = emitterNormalX;
     this.emitterNormalY = emitterNormalY;
@@ -299,7 +299,7 @@ public class IntersectionKernel extends Kernel {
   public void calculate(Consumer<double[]> resultConsumer, KernelComplete completionHandler) {
     if (isMathOnly()) throw new MathOnlyKernelException();
 
-    stateManager.startBufferTransfer();
+    eventManager.startBufferTransfer();
     setExplicit(true);
     put(emitterNormalX).put(emitterNormalY).put(emitterNormalZ);
     put(emitterVertexAX).put(emitterVertexAY).put(emitterVertexAZ);
@@ -318,16 +318,16 @@ public class IntersectionKernel extends Kernel {
 
     result = new double[receiverAreas.length];
 
-    stateManager.finishBufferTransfer();
-    stateManager.startComputation();
+    eventManager.finishBufferTransfer();
+    eventManager.startComputation();
     for (emitterIndex = 0; emitterIndex < receiverAreas.length; emitterIndex++) {
       super.execute(Range.create(receiverAreas.length));
-      stateManager.updateComputationProgress(emitterIndex, receiverAreas.length);
+      eventManager.updateComputationProgress(emitterIndex, receiverAreas.length);
       get(result);
       resultConsumer.accept(result);
     }
-    stateManager.updateComputationProgress(emitterIndex, receiverAreas.length);
-    stateManager.finishComputation(completionHandler.onComplete());
+    eventManager.updateComputationProgress(emitterIndex, receiverAreas.length);
+    eventManager.finishComputation(completionHandler.onComplete());
   }
 
   /**

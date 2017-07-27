@@ -1,4 +1,4 @@
-package viewfactor.state;
+package viewfactor.events;
 
 interface Events {
   void start();

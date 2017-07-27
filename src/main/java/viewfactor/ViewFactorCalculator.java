@@ -2,27 +2,27 @@ package viewfactor;
 
 import com.google.inject.Inject;
 import org.j3d.loaders.stl.STLFileReader;
+import viewfactor.events.EventManager;
 import viewfactor.gpu.IntersectionKernel;
-import viewfactor.state.StateManager;
 
 public class ViewFactorCalculator {
 
   private IntersectionKernel.Builder kernelBuilder;
-  private StateManager stateManager;
+  private EventManager eventManager;
   private ThreadedAdder adder;
 
   @Inject
   public ViewFactorCalculator(
       IntersectionKernel.Builder kernelBuilder,
       ThreadedAdder adder,
-      StateManager stateManager) {
+      EventManager eventManager) {
     this.kernelBuilder = kernelBuilder;
     this.adder = adder;
-    this.stateManager = stateManager;
+    this.eventManager = eventManager;
   }
 
   public void run(STLFileReader emitterFile, STLFileReader receiverFile, STLFileReader interconnectFile) {
-    stateManager.start();
+    eventManager.start();
     kernelBuilder
         .setEmitterReader(emitterFile)
         .setInterconnectReader(interconnectFile)
@@ -30,6 +30,6 @@ public class ViewFactorCalculator {
         .build()
         // TODO(Matthew Barry): we get the right result without dividing by area after summing. Why is this?
         .calculate(adder::add, adder::finishAndGet);
-    stateManager.finish();
+    eventManager.finish();
   }
 }

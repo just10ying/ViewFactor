@@ -2,9 +2,8 @@ import com.google.inject.Inject;
 import com.google.inject.Provider;
 import com.sun.istack.internal.Nullable;
 import org.j3d.loaders.stl.STLFileReader;
-import org.json.JSONObject;
 import viewfactor.ViewFactorCalculator;
-import viewfactor.state.StateManager;
+import viewfactor.events.EventManager;
 
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
@@ -25,20 +24,20 @@ public class ServerConnection {
   private static final int REQUEST_TIMEOUT = 30000;
 
   private final Provider<ViewFactorCalculator> calculatorProvider;
-  private final MapLogger mapLogger;
-  private final StateManager stateManager;
+  private final WebsocketLogger websocketLogger;
+  private final EventManager eventManager;
 
   private URL url;
 
   @Inject
   public ServerConnection(
-      StateManager stateManager,
-      MapLogger mapLogger,
+      EventManager eventManager,
+      WebsocketLogger websocketLogger,
       Provider<ViewFactorCalculator> calculatorProvider) {
-    this.mapLogger = mapLogger;
-    this.stateManager = stateManager;
+    this.websocketLogger = websocketLogger;
+    this.eventManager = eventManager;
     this.calculatorProvider = calculatorProvider;
-    stateManager.registerSubscriber(mapLogger);
+    eventManager.registerSubscriber(websocketLogger);
   }
 
   void connect(@Nullable String urlString) {
@@ -48,32 +47,32 @@ public class ServerConnection {
       } else {
         url = new URL(urlString);
       }
-      new Thread(this::loop).start();
+//      new Thread(this::loop).start();
     } catch (MalformedURLException e) {
       e.printStackTrace();
       System.out.println("Shutting down.");
     }
   }
-
-  private void loop() {
-    while (true) {
-      try {
-        JSONObject jsonResponse = new JSONObject(sendParams(mapLogger.get()));
-        if (stateManager.getState() == StateManager.State.IDLE
-            || stateManager.getState() == StateManager.State.EXCEPTION
-            && !jsonResponse.toString().isEmpty()) {
-          startJob(
-              jsonResponse.getString(EMITTER_URL_JSON_KEY),
-              jsonResponse.getString(RECEIVER_URL_JSON_KEY),
-              jsonResponse.optString(INTERCONNECT_URL_JSON_KEY)
-          );
-        }
-        Thread.sleep(REQUEST_TIMEOUT);
-      } catch (Exception e) {
-        stateManager.exception(e);
-      }
-    }
-  }
+//
+//  private void loop() {
+//    while (true) {
+//      try {
+//        JSONObject jsonResponse = new JSONObject(sendParams(websocketLogger.get()));
+//        if (eventManager.getState() == EventManager.State.IDLE
+//            || eventManager.getState() == EventManager.State.EXCEPTION
+//            && !jsonResponse.toString().isEmpty()) {
+//          startJob(
+//              jsonResponse.getString(EMITTER_URL_JSON_KEY),
+//              jsonResponse.getString(RECEIVER_URL_JSON_KEY),
+//              jsonResponse.optString(INTERCONNECT_URL_JSON_KEY)
+//          );
+//        }
+//        Thread.sleep(REQUEST_TIMEOUT);
+//      } catch (Exception e) {
+//        eventManager.exception(e);
+//      }
+//    }
+//  }
 
   private String sendParams(Map<String, String> params) {
     try {
@@ -116,7 +115,7 @@ public class ServerConnection {
     STLFileReader receiverReader = new STLFileReader(new URL(receiverUrl));
     STLFileReader interconnectReader = interconnectUrl.isEmpty() ? null : new STLFileReader(new URL(interconnectUrl));
     Thread calculatorThread = new Thread(() -> calculatorProvider.get().run(emitterReader, receiverReader, interconnectReader));
-    calculatorThread.setUncaughtExceptionHandler((t, e) -> stateManager.exception(new Exception(e)));
+    calculatorThread.setUncaughtExceptionHandler((t, e) -> eventManager.exception(new Exception(e)));
     calculatorThread.start();
   }
 }
