@@ -19,13 +19,13 @@ public abstract class Event {
     this.timestamp = System.currentTimeMillis();
   }
 
-  abstract String getMessage();
+  public abstract String getMessage();
 
   public long getTimestamp() {
     return timestamp;
   }
 
-  String getDateTime() {
+  public String getDateTime() {
     return new SimpleDateFormat("[MMM dd, yyyy HH:mm:ss]").format(new Date(timestamp));
   }
 
@@ -50,7 +50,7 @@ public abstract class Event {
 
   static class JobStart extends Event {
     @Override
-    String getMessage() {
+    public String getMessage() {
       return "Initializing...";
     }
   }
@@ -63,14 +63,14 @@ public abstract class Event {
     }
 
     @Override
-    String getMessage() {
+    public String getMessage() {
       return "All operations completed in: " + getReasonableTimeUnit(allStopWatch);
     }
   }
 
   static class ParseStlStart extends Event {
     @Override
-    String getMessage() {
+    public String getMessage() {
       return "Reading STL files and precomputing geometry...";
     }
   }
@@ -83,14 +83,14 @@ public abstract class Event {
     }
 
     @Override
-    String getMessage() {
+    public String getMessage() {
       return "STLs parsed and geometry precomputed in: " + getReasonableTimeUnit(stlStopwatch);
     }
   }
 
   static class BufferTransferStart extends Event {
     @Override
-    String getMessage() {
+    public String getMessage() {
       return "Transferring initial buffers to GPU...";
     }
   }
@@ -103,14 +103,14 @@ public abstract class Event {
     }
 
     @Override
-    String getMessage() {
+    public String getMessage() {
       return "Initial buffer transfer complete in: " + getReasonableTimeUnit(bufferTransferStopwatch);
     }
   }
 
   static class ComputationStart extends Event {
     @Override
-    String getMessage() {
+    public String getMessage() {
       return "Beginning GPU computation of view factors...";
     }
   }
@@ -134,7 +134,7 @@ public abstract class Event {
     }
 
     @Override
-    String getMessage() {
+    public String getMessage() {
       double percent = (double) currentJob / (double) numJobs;
       String fraction = "(" + currentJob + "/" + numJobs + ").";
       return "GPU computation is " + PERCENTAGE_FORMATTER.format(percent) + " complete " + fraction;
@@ -151,7 +151,7 @@ public abstract class Event {
     }
 
     @Override
-    String getMessage() {
+    public String getMessage() {
       return "GPU computation finished in: " + getReasonableTimeUnit(computationStopwatch) + "\n"
           + "Result: " + result;
     }
@@ -165,7 +165,7 @@ public abstract class Event {
     }
 
     @Override
-    String getMessage() {
+    public String getMessage() {
       return info;
     }
   }
@@ -178,7 +178,7 @@ public abstract class Event {
     }
 
     @Override
-    String getMessage() {
+    public String getMessage() {
       return exception.getMessage();
     }
   }

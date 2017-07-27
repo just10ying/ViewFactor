@@ -1,6 +1,6 @@
 package viewfactor.events;
 
-interface Events {
+interface KernelEvents {
   void start();
   void finish();
   void startParseStl();

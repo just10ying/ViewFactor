@@ -2,13 +2,12 @@ import com.google.inject.Guice;
 import com.google.inject.Injector;
 import org.j3d.loaders.stl.STLFileReader;
 import viewfactor.ViewFactorCalculator;
-import viewfactor.ViewFactorModule;
 
 import java.io.File;
 
-public class Main {
+public class Application {
   public static void main(String[] args) {
-    Injector injector = Guice.createInjector(new ViewFactorModule());
+    Injector injector = Guice.createInjector(new ApplicationModule());
     if (args.length >= 2) {
       File emitterFile = new File(args[0]);
       File receiverFile = new File(args[1]);

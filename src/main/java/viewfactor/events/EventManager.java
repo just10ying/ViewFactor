@@ -4,13 +4,14 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
+import logger.ConsoleLogger;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class EventManager implements Events {
+public class EventManager implements KernelEvents {
 
   public interface Subscriber {
     void onEvent(Event event);
