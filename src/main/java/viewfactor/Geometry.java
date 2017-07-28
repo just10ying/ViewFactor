@@ -1,11 +1,11 @@
-package viewfactor.gpu;
+package viewfactor;
 
 import com.google.inject.Inject;
 import org.j3d.loaders.stl.STLFileReader;
 
 import java.util.stream.IntStream;
 
-public class GpuGeometry {
+public class Geometry {
 
   private static final int A = 0;
   private static final int B = 1;
@@ -43,18 +43,18 @@ public class GpuGeometry {
   private double[] area;
 
   @Inject
-  public GpuGeometry() {}
+  public Geometry() {}
 
   int size() {
     return size;
   }
 
-  GpuGeometry empty() {
+  Geometry empty() {
     initWithSize(0);
     return this;
   }
 
-  GpuGeometry from(STLFileReader stlReader) {
+  Geometry from(STLFileReader stlReader) {
     try {
       initFromStlFileReader(stlReader);
       return this;

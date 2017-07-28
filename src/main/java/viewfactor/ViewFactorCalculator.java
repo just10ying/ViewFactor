@@ -3,7 +3,6 @@ package viewfactor;
 import com.google.inject.Inject;
 import org.j3d.loaders.stl.STLFileReader;
 import viewfactor.events.EventManager;
-import viewfactor.gpu.IntersectionKernel;
 
 public class ViewFactorCalculator {
 

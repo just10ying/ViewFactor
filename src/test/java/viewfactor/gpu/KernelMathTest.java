@@ -2,6 +2,7 @@ package viewfactor.gpu;
 
 import org.junit.Before;
 import org.junit.Test;
+import viewfactor.IntersectionKernel;
 
 import static com.google.common.truth.Truth.assertThat;
 

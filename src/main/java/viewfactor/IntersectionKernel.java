@@ -1,4 +1,4 @@
-package viewfactor.gpu;
+package viewfactor;
 
 import com.aparapi.Kernel;
 import com.aparapi.Range;
@@ -13,7 +13,7 @@ import java.util.function.Consumer;
 public class IntersectionKernel extends Kernel {
 
   public static class Builder {
-    private final Provider<GpuGeometry> geometryProvider;
+    private final Provider<Geometry> geometryProvider;
     private final EventManager eventManager;
 
     private STLFileReader emitterReader;
@@ -21,31 +21,31 @@ public class IntersectionKernel extends Kernel {
     private STLFileReader interconnectReader;
 
     @Inject
-    public Builder(Provider<GpuGeometry> geometryProvider, EventManager eventManager) {
+    public Builder(Provider<Geometry> geometryProvider, EventManager eventManager) {
       this.geometryProvider = geometryProvider;
       this.eventManager = eventManager;
     }
 
-    public Builder setEmitterReader(STLFileReader emitterFile) {
+    Builder setEmitterReader(STLFileReader emitterFile) {
       this.emitterReader = emitterFile;
       return this;
     }
 
-    public Builder setInterconnectReader(STLFileReader interconnectFile) {
+    Builder setInterconnectReader(STLFileReader interconnectFile) {
       this.interconnectReader = interconnectFile;
       return this;
     }
 
-    public Builder setReceiverReader(STLFileReader receiverFile) {
+    Builder setReceiverReader(STLFileReader receiverFile) {
       this.receiverReader = receiverFile;
       return this;
     }
 
-    public IntersectionKernel build() {
+    IntersectionKernel build() {
       eventManager.startParseStl();
-      GpuGeometry emitters = geometryProvider.get().from(emitterReader);
-      GpuGeometry receivers = geometryProvider.get().from(receiverReader);
-      GpuGeometry interconnects = interconnectReader == null
+      Geometry emitters = geometryProvider.get().from(emitterReader);
+      Geometry receivers = geometryProvider.get().from(receiverReader);
+      Geometry interconnects = interconnectReader == null
           ? geometryProvider.get().empty() : geometryProvider.get().from(interconnectReader);
       eventManager.finishParseStl();
 
@@ -296,7 +296,7 @@ public class IntersectionKernel extends Kernel {
    * Runs the kernel for each emitter triangle, passing the view factor result of that triangle's dA incrementally back
    * to resultConsumer. Calls completionHandler onComplete when the task is finished.
    */
-  public void calculate(Consumer<double[]> resultConsumer, KernelComplete completionHandler) {
+  void calculate(Consumer<double[]> resultConsumer, KernelComplete completionHandler) {
     if (isMathOnly()) throw new MathOnlyKernelException();
 
     eventManager.startBufferTransfer();
@@ -345,7 +345,7 @@ public class IntersectionKernel extends Kernel {
 
     // Check if any intersecting geometry exists.
     for (int interconnectIndex = 0; interconnectIndex < interconnectSize; interconnectIndex++) {
-      double intersectionDistance = intersectionDistance(interconnectIndex, receiverIndex, rayX, rayY, rayZ, rayMagnitude);
+      double intersectionDistance = intersectionDistance(interconnectIndex, rayX, rayY, rayZ);
       // If intersecting geometry exists, the contributed view factor is zero.
       if (intersectionDistance != 0 && intersectionDistance <= rayMagnitude) {
         result[receiverIndex] = 0;
@@ -388,7 +388,8 @@ public class IntersectionKernel extends Kernel {
   }
 
   // TODO: tests.
-  private double intersectionDistance(int interconnectIndex, int receiverIndex, double rayX, double rayY, double rayZ, double rayMagnitude) {
+  // From https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
+  private double intersectionDistance(int interconnectIndex, double rayX, double rayY, double rayZ) {
     // pvec = cross product of ray and edge2.
     double pvecX = rayY * interconnectEdgeCAZ[interconnectIndex] - rayZ * interconnectEdgeCAY[interconnectIndex];
     double pvecY = rayZ * interconnectEdgeCAX[interconnectIndex] - rayX * interconnectEdgeCAZ[interconnectIndex];
