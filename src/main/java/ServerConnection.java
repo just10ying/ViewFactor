@@ -1,8 +1,8 @@
 import com.google.inject.Provider;
 import com.google.inject.assistedinject.Assisted;
 import com.google.inject.assistedinject.AssistedInject;
+import events.Event;
 import events.EventManager;
-import handlers.RemoteLogger;
 import org.j3d.loaders.stl.STLFileReader;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.drafts.Draft_6455;
@@ -15,7 +15,7 @@ import java.net.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class ServerConnection extends WebSocketClient {
+public class ServerConnection extends WebSocketClient implements EventManager.Subscriber {
 
   private static final String DEFAULT_SERVER_URI = "ws://158.69.215.240:8124";
   private static final String REGISTER_JSON_KEY = "register";
@@ -33,7 +33,6 @@ public class ServerConnection extends WebSocketClient {
   @AssistedInject
   public ServerConnection(
       EventManager eventManager,
-      RemoteLogger.Factory remoteLogger,
       Provider<ViewFactorCalculator> calculatorProvider,
       @Assisted @Nullable String serverUri) throws URISyntaxException {
     super(serverUri == null ? new URI(DEFAULT_SERVER_URI) : new URI(serverUri), new Draft_6455());
@@ -41,7 +40,7 @@ public class ServerConnection extends WebSocketClient {
     this.calculatorProvider = calculatorProvider;
     executorService = Executors.newFixedThreadPool(1);
     connect();
-    eventManager.registerSubscriber(remoteLogger.create(this::send));
+    eventManager.registerSubscriber(this);
   }
 
   @Override
@@ -65,6 +64,11 @@ public class ServerConnection extends WebSocketClient {
     } catch (Exception e) {
       e.printStackTrace();
     }
+  }
+
+  @Override
+  public void onEvent(Event event) {
+    send(event.toJson().toString());
   }
 
   @Override
