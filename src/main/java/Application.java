@@ -29,6 +29,7 @@ public class Application {
     eventManager.registerSubscriber(fileLogger);
 
     if (args.length >= 2) {
+      // Manual run.
       File emitterFile = new File(args[0]);
       File receiverFile = new File(args[1]);
       File interconnectFile = args.length == 3 ? new File(args[2]) : null;
@@ -45,6 +46,7 @@ public class Application {
         e.printStackTrace();
       }
     } else {
+      // Remote run.
       serverConnectionFactory.create(args.length == 0 ? null : args[0]);
     }
   }
