@@ -5,8 +5,8 @@ import com.aparapi.Range;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
+import events.EventManager;
 import org.j3d.loaders.stl.STLFileReader;
-import viewfactor.events.EventManager;
 
 import java.util.function.Consumer;
 
@@ -26,18 +26,18 @@ public class IntersectionKernel extends Kernel {
       this.eventManager = eventManager;
     }
 
-    Builder setEmitterReader(STLFileReader emitterFile) {
-      this.emitterReader = emitterFile;
+    Builder setEmitterReader(STLFileReader emitterReader) {
+      this.emitterReader = emitterReader;
       return this;
     }
 
-    Builder setInterconnectReader(STLFileReader interconnectFile) {
-      this.interconnectReader = interconnectFile;
+    Builder setInterconnectReader(STLFileReader interconnectReader) {
+      this.interconnectReader = interconnectReader;
       return this;
     }
 
-    Builder setReceiverReader(STLFileReader receiverFile) {
-      this.receiverReader = receiverFile;
+    Builder setReceiverReader(STLFileReader receiverReader) {
+      this.receiverReader = receiverReader;
       return this;
     }
 

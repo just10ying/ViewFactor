@@ -1,4 +1,4 @@
-package viewfactor.events;
+package events;
 
 import com.google.common.base.Stopwatch;
 import org.json.JSONObject;

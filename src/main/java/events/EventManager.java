@@ -1,15 +1,17 @@
-package viewfactor.events;
+package events;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
-import logger.ConsoleLogger;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 public class EventManager implements KernelEvents {
 
@@ -45,6 +47,7 @@ public class EventManager implements KernelEvents {
   private final Provider<Stopwatch> stopwatchProvider;
   private final List<Event> events;
   private final List<Subscriber> subscribers;
+  private final ExecutorService executors;
 
   private Stopwatch allStopWatch;
   private Stopwatch stlStopwatch;
@@ -54,14 +57,12 @@ public class EventManager implements KernelEvents {
   private State state;
 
   @Inject
-  public EventManager(Provider<Stopwatch> stopwatchProvider, ConsoleLogger consoleLogger) {
+  public EventManager(Provider<Stopwatch> stopwatchProvider) {
     this.stopwatchProvider = stopwatchProvider;
     subscribers = new ArrayList<>();
     events = new ArrayList<>();
     state = State.IDLE;
-
-    // By default, log to console.
-    subscribers.add(consoleLogger);
+    executors = Executors.newFixedThreadPool(1);
   }
 
   public void registerSubscriber(Subscriber subscriber) {
@@ -147,6 +148,15 @@ public class EventManager implements KernelEvents {
     recordAndAlertSubscribers(new Event.ExceptionThrown(e));
   }
 
+  public void shutdown() {
+    executors.shutdown();
+    try {
+      executors.awaitTermination(5, TimeUnit.HOURS);
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+    }
+  }
+
   private void changeState(State newState) {
     Preconditions.checkState(VALID_STATES.get(state) == newState || newState == State.EXCEPTION);
     state = newState;
@@ -154,7 +164,7 @@ public class EventManager implements KernelEvents {
 
   private void recordAndAlertSubscribers(Event event) {
     events.add(event);
-    subscribers.forEach(subscriber -> subscriber.onEvent(event));
+    executors.execute(() -> subscribers.forEach(subscriber -> subscriber.onEvent(event)));
   }
 }
 

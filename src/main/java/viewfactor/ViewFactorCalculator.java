@@ -1,8 +1,8 @@
 package viewfactor;
 
 import com.google.inject.Inject;
+import events.EventManager;
 import org.j3d.loaders.stl.STLFileReader;
-import viewfactor.events.EventManager;
 
 public class ViewFactorCalculator {
 

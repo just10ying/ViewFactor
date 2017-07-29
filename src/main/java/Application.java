@@ -1,13 +1,33 @@
 import com.google.inject.Guice;
 import com.google.inject.Injector;
+import com.google.inject.assistedinject.Assisted;
+import com.google.inject.assistedinject.AssistedInject;
+import events.EventManager;
+import handlers.ConsoleLogger;
+import handlers.FileLogger;
 import org.j3d.loaders.stl.STLFileReader;
 import viewfactor.ViewFactorCalculator;
 
 import java.io.File;
+import java.net.URISyntaxException;
 
 public class Application {
-  public static void main(String[] args) {
-    Injector injector = Guice.createInjector(new ApplicationModule());
+  public interface Factory {
+    Application create(String[] args);
+  }
+
+  @AssistedInject
+  public Application(
+      ViewFactorCalculator viewFactorCalculator,
+      ServerConnection.Factory serverConnectionFactory,
+      EventManager eventManager,
+      ConsoleLogger consoleLogger,
+      FileLogger fileLogger,
+      @Assisted String[] args
+  ) {
+    eventManager.registerSubscriber(consoleLogger);
+    eventManager.registerSubscriber(fileLogger);
+
     if (args.length >= 2) {
       File emitterFile = new File(args[0]);
       File receiverFile = new File(args[1]);
@@ -17,13 +37,21 @@ public class Application {
         STLFileReader emitterReader = new STLFileReader(emitterFile);
         STLFileReader receiverReader = new STLFileReader(receiverFile);
         STLFileReader interconnectReader = interconnectFile == null ? null : new STLFileReader(interconnectFile);
-        injector.getInstance(ViewFactorCalculator.class).run(emitterReader, receiverReader, interconnectReader);
+        viewFactorCalculator.run(emitterReader, receiverReader, interconnectReader);
+
+        eventManager.shutdown();
+        System.exit(0);
       } catch (Exception e) {
         e.printStackTrace();
       }
     } else {
-      ServerConnection serverConnection = injector.getInstance(ServerConnection.class);
-      serverConnection.connect(args.length == 0 ? null : args[0]);
+      serverConnectionFactory.create(args.length == 0 ? null : args[0]);
     }
+  }
+
+  // Bootstrap application.
+  public static void main(String[] args) throws URISyntaxException {
+    Injector injector = Guice.createInjector(new ApplicationModule());
+    injector.getInstance(Application.Factory.class).create(args);
   }
 }

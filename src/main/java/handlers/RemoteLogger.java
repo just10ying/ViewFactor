@@ -1,9 +1,9 @@
-package logger;
+package handlers;
 
 import com.google.inject.assistedinject.Assisted;
 import com.google.inject.assistedinject.AssistedInject;
-import viewfactor.events.Event;
-import viewfactor.events.EventManager;
+import events.Event;
+import events.EventManager;
 
 public class RemoteLogger implements EventManager.Subscriber {
 

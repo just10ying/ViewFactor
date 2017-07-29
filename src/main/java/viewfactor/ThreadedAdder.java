@@ -33,7 +33,7 @@ class ThreadedAdder {
       threadPool.awaitTermination(5, TimeUnit.HOURS);
     } catch (Exception e) {
       e.printStackTrace();
-      return 0;
+      return -1;
     }
     return sum.doubleValue();
   }

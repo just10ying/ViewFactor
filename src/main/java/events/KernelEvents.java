@@ -1,4 +1,4 @@
-package viewfactor.events;
+package events;
 
 interface KernelEvents {
   void start();

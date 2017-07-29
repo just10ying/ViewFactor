@@ -1,11 +1,14 @@
 import com.google.inject.AbstractModule;
-import logger.LoggerModule;
-import viewfactor.events.EventModule;
+import com.google.inject.assistedinject.FactoryModuleBuilder;
+import events.EventModule;
+import handlers.LoggerModule;
 
 public class ApplicationModule extends AbstractModule {
   @Override
   protected void configure() {
     install(new LoggerModule());
     install(new EventModule());
+    install(new FactoryModuleBuilder().build(ServerConnection.Factory.class));
+    install(new FactoryModuleBuilder().build(Application.Factory.class));
   }
 }

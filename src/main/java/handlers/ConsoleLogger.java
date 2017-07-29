@@ -1,8 +1,8 @@
-package logger;
+package handlers;
 
 import com.google.inject.Inject;
-import viewfactor.events.Event;
-import viewfactor.events.EventManager;
+import events.Event;
+import events.EventManager;
 
 public class ConsoleLogger implements EventManager.Subscriber {
 
