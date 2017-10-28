@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/ViewFactor.iml" filepath="$PROJECT_DIR$/.idea/modules/ViewFactor.iml" />
+      <module fileurl="file://$PROJECT_DIR$/ViewFactor.iml" filepath="$PROJECT_DIR$/ViewFactor.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/ViewFactor_main.iml" filepath="$PROJECT_DIR$/.idea/modules/ViewFactor_main.iml" group="ViewFactor" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/ViewFactor_test.iml" filepath="$PROJECT_DIR$/.idea/modules/ViewFactor_test.iml" group="ViewFactor" />
     </modules>

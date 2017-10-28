@@ -19,7 +19,6 @@ public class Application {
   @AssistedInject
   public Application(
       ViewFactorCalculator viewFactorCalculator,
-      ServerConnection.Factory serverConnectionFactory,
       EventManager eventManager,
       ConsoleLogger consoleLogger,
       FileLogger fileLogger,
@@ -28,26 +27,21 @@ public class Application {
     eventManager.registerSubscriber(consoleLogger);
     eventManager.registerSubscriber(fileLogger);
 
-    if (args.length >= 2) {
-      // Manual run.
-      File emitterFile = new File(args[0]);
-      File receiverFile = new File(args[1]);
-      File interconnectFile = args.length == 3 ? new File(args[2]) : null;
+    // Manual run.
+    File emitterFile = new File(args[0]);
+    File receiverFile = new File(args[1]);
+    File interconnectFile = args.length == 3 ? new File(args[2]) : null;
 
-      try {
-        STLFileReader emitterReader = new STLFileReader(emitterFile);
-        STLFileReader receiverReader = new STLFileReader(receiverFile);
-        STLFileReader interconnectReader = interconnectFile == null ? null : new STLFileReader(interconnectFile);
-        viewFactorCalculator.run(emitterReader, receiverReader, interconnectReader);
+    try {
+      STLFileReader emitterReader = new STLFileReader(emitterFile);
+      STLFileReader receiverReader = new STLFileReader(receiverFile);
+      STLFileReader interconnectReader = interconnectFile == null ? null : new STLFileReader(interconnectFile);
+      viewFactorCalculator.run(emitterReader, receiverReader, interconnectReader);
 
-        eventManager.shutdown();
-        System.exit(0);
-      } catch (Exception e) {
-        e.printStackTrace();
-      }
-    } else {
-      // Remote run.
-      serverConnectionFactory.create(args.length == 0 ? null : args[0]);
+      eventManager.shutdown();
+      System.exit(0);
+    } catch (Exception e) {
+      e.printStackTrace();
     }
   }
 

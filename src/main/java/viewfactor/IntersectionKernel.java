@@ -327,7 +327,14 @@ public class IntersectionKernel extends Kernel {
       resultConsumer.accept(result);
     }
     eventManager.updateComputationProgress(emitterIndex, receiverAreas.length);
-    eventManager.finishComputation(completionHandler.onComplete());
+    eventManager.finishComputation(completionHandler.onComplete() / sum(emitterAreas));
+  }
+
+  private static double sum(double...values) {
+    double result = 0;
+    for (double value:values)
+      result += value;
+    return result;
   }
 
   /**

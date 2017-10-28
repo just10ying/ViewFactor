@@ -8,7 +8,6 @@ public class ApplicationModule extends AbstractModule {
   protected void configure() {
     install(new LoggerModule());
     install(new EventModule());
-    install(new FactoryModuleBuilder().build(Server.Factory.class));
     install(new FactoryModuleBuilder().build(Application.Factory.class));
   }
 }
